@@ -298,40 +298,77 @@ const Config = {
     const users = await DB.getUsersByInstitution(institutionId);
     container.innerHTML = '';
 
+    // Count admins to enforce last-admin protection
+    const adminCount = users.filter(u => u.role === 'admin').length;
+
     for (const user of users) {
       const row = document.createElement('div');
       row.className = 'team-member-row';
 
       const isCurrentUser = user.id === Auth.currentUser.uid;
-      const roleOptions = isCurrentUser
-        ? `<span>${user.role}</span>`
-        : `<select data-user-id="${user.id}" data-action="change-role">
+      const isSoleAdmin = user.role === 'admin' && adminCount <= 1;
+
+      let roleOptions;
+      if (isCurrentUser) {
+        roleOptions = `<span>${user.role}</span>`;
+      } else if (isSoleAdmin) {
+        // Disable role change for the sole admin
+        roleOptions = `<select disabled title="This is the only admin. Promote another member to admin first.">
+             <option value="admin" selected>Admin</option>
+           </select>
+           <span class="sole-admin-note">Only admin</span>`;
+      } else {
+        roleOptions = `<select data-user-id="${user.id}" data-action="change-role">
              <option value="member" ${user.role === 'member' ? 'selected' : ''}>Member</option>
              <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
            </select>`;
+      }
+
+      // Block remove button for sole admin
+      let removeBtn = '';
+      if (!isCurrentUser) {
+        if (isSoleAdmin) {
+          removeBtn = `<button class="btn btn-small btn-danger" disabled title="This is the only admin. Promote another member to admin first.">Remove</button>`;
+        } else {
+          removeBtn = `<button class="btn btn-small btn-danger" data-remove-user="${user.id}">Remove</button>`;
+        }
+      }
 
       row.innerHTML = `
         <div class="team-member-info">
           <strong>${user.display_name || user.email}${isCurrentUser ? ' (you)' : ''}</strong>
           <span>${user.email}</span>
         </div>
-        <div>${roleOptions}</div>
-        ${!isCurrentUser ? `<button class="btn btn-small btn-danger" data-remove-user="${user.id}">Remove</button>` : ''}
+        <div class="team-member-role">${roleOptions}</div>
+        ${removeBtn}
       `;
 
       container.appendChild(row);
     }
 
-    // Role change handlers
+    // Role change handlers — with last-admin guard
     container.querySelectorAll('[data-action="change-role"]').forEach(select => {
       select.addEventListener('change', async () => {
         const userId = select.getAttribute('data-user-id');
-        await DB.updateUser(userId, { role: select.value });
+        const newRole = select.value;
+
+        // Double-check before demoting an admin
+        if (newRole !== 'admin') {
+          const isLast = await DB.isLastAdmin(institutionId, userId);
+          if (isLast) {
+            App.showToast('Cannot demote the only admin. Promote another member to admin first.', 'error');
+            select.value = 'admin'; // revert
+            return;
+          }
+        }
+
+        await DB.updateUser(userId, { role: newRole });
         App.showToast('Role updated.', 'success');
+        Config.renderTeam(); // re-render to update sole-admin state
       });
     });
 
-    // Remove user handlers
+    // Remove user handlers — with last-admin guard
     container.querySelectorAll('[data-remove-user]').forEach(btn => {
       btn.addEventListener('click', () => {
         const userId = btn.getAttribute('data-remove-user');
@@ -339,6 +376,12 @@ const Config = {
           'Remove Team Member',
           'This person will lose access to the institution. They can rejoin with a new invite code.',
           async () => {
+            // Double-check before removing an admin
+            const isLast = await DB.isLastAdmin(institutionId, userId);
+            if (isLast) {
+              App.showToast('Cannot remove the only admin. Promote another member to admin first.', 'error');
+              return;
+            }
             await DB.deleteUser(userId);
             Config.renderTeam();
             App.showToast('Team member removed.', 'success');

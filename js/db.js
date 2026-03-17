@@ -64,6 +64,24 @@ const DB = {
     }
   },
 
+  // Check if a user is the last admin for their institution
+  async isLastAdmin(institutionId, userId) {
+    try {
+      const userDoc = await db.collection('users').doc(userId).get();
+      if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        return false; // Not an admin, so not the "last admin"
+      }
+      const admins = await db.collection('users')
+        .where('institution_id', '==', institutionId)
+        .where('role', '==', 'admin')
+        .get();
+      return admins.size <= 1;
+    } catch (error) {
+      console.error('Error checking last admin:', error);
+      return true; // Fail safe: assume they are the last admin
+    }
+  },
+
   // ===== INSTITUTIONS =====
 
   async getInstitution(institutionId) {

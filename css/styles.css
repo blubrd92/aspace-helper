@@ -1227,6 +1227,18 @@ select {
   color: var(--color-text-muted);
 }
 
+.team-member-role {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.sole-admin-note {
+  font-size: 0.75rem;
+  color: var(--color-warning);
+  white-space: nowrap;
+}
+
 /* ===== Validation Report ===== */
 .validation-report {
   max-height: 400px;
