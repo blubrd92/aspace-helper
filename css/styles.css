@@ -1081,7 +1081,7 @@ select {
   padding: 4px 0;
 }
 
-.field-config-row label {
+.field-config-row > label {
   margin: 0;
   font-weight: 400;
   flex: 1;
@@ -1102,8 +1102,11 @@ select {
   position: relative;
   display: inline-block;
   width: 36px;
+  min-width: 36px;
+  max-width: 36px;
   height: 20px;
   flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .toggle input {
