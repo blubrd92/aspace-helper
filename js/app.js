@@ -171,8 +171,14 @@ const App = {
 
     // Update UI
     document.getElementById('editor-project-name').textContent = project.name;
-    document.getElementById('editor-resource-id').textContent =
-      project.resource_identifier || '(no identifier set)';
+    const ridBadge = document.getElementById('editor-resource-id');
+    if (project.resource_identifier) {
+      ridBadge.textContent = project.resource_identifier;
+      ridBadge.classList.remove('unset');
+    } else {
+      ridBadge.textContent = '(click to set resource ID)';
+      ridBadge.classList.add('unset');
+    }
 
     // Reset form panel
     document.getElementById('no-selection').classList.remove('hidden');
@@ -263,7 +269,9 @@ const App = {
     const success = await DB.updateProject(App.currentProject.id, {
       entries: App.currentProject.entries,
       defaults: App.currentProject.defaults,
-      status: App.currentProject.status
+      status: App.currentProject.status,
+      resource_identifier: App.currentProject.resource_identifier || '',
+      identifier_type: App.currentProject.identifier_type || 'res_uri'
     });
 
     if (success) {
@@ -777,6 +785,31 @@ const App = {
     // --- User menu dropdowns ---
     App.setupDropdown('btn-user-menu', 'user-dropdown');
     App.setupDropdown('btn-user-menu-editor', 'user-dropdown-editor');
+
+    // --- Editor: Edit resource identifier ---
+    document.getElementById('editor-resource-id').addEventListener('click', () => {
+      if (!App.currentProject) return;
+
+      const current = App.currentProject.resource_identifier || '';
+      const currentType = App.currentProject.identifier_type || 'res_uri';
+      const typeLabel = currentType === 'ead' ? 'EAD ID' : 'Resource URI';
+      const placeholder = currentType === 'ead' ? 'e.g., MS-0042' : 'e.g., /repositories/2/resources/123';
+
+      const newValue = prompt(`Enter ${typeLabel}:`, current);
+      if (newValue === null) return; // cancelled
+
+      App.currentProject.resource_identifier = newValue.trim();
+      App.markDirty();
+
+      const badge = document.getElementById('editor-resource-id');
+      if (newValue.trim()) {
+        badge.textContent = newValue.trim();
+        badge.classList.remove('unset');
+      } else {
+        badge.textContent = '(click to set resource ID)';
+        badge.classList.add('unset');
+      }
+    });
 
     // --- Editor: Back to projects ---
     document.getElementById('btn-back-projects').addEventListener('click', () => {

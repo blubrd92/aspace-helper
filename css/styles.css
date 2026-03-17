@@ -484,7 +484,21 @@ select {
   color: var(--color-text-muted);
   background: var(--color-bg);
   padding: 2px 8px;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.resource-id-badge:hover {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.resource-id-badge.unset {
+  color: var(--color-warning);
+  font-style: italic;
+  font-family: var(--font-sans);
 }
 
 .sync-indicator {

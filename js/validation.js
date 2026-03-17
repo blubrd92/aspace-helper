@@ -257,7 +257,7 @@ const Validation = {
         entryIndex: -1,
         entryTitle: '(Project)',
         field: 'resource_identifier',
-        message: 'A Resource URI or EAD ID is required before export. Set this in the project settings.'
+        message: 'A Resource URI or EAD ID is required before export. Click the identifier badge in the editor toolbar to set it.'
       });
     }
 
