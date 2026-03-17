@@ -674,6 +674,74 @@ const App = {
     document.getElementById('btn-signout').addEventListener('click', signOutHandler);
     document.getElementById('btn-signout-editor').addEventListener('click', signOutHandler);
 
+    // --- Leave Institution ---
+    const leaveModal = document.getElementById('modal-leave-institution');
+    const leaveInput = document.getElementById('input-leave-confirm');
+    const leaveBtn = document.getElementById('btn-confirm-leave');
+    const leaveWarning = document.getElementById('leave-last-admin-warning');
+    const leaveFields = document.getElementById('leave-confirm-fields');
+
+    const openLeaveModal = async () => {
+      leaveInput.value = '';
+      leaveBtn.disabled = true;
+      leaveWarning.classList.add('hidden');
+      leaveFields.classList.remove('hidden');
+      leaveBtn.classList.remove('hidden');
+
+      // Check if sole admin
+      const institutionId = Auth.getInstitutionId();
+      if (institutionId && Auth.isAdmin()) {
+        const isLast = await DB.isLastAdmin(institutionId, Auth.currentUser.uid);
+        if (isLast) {
+          leaveWarning.classList.remove('hidden');
+          leaveFields.classList.add('hidden');
+          leaveBtn.classList.add('hidden');
+        }
+      }
+
+      leaveModal.classList.remove('hidden');
+    };
+
+    document.getElementById('btn-leave-institution').addEventListener('click', openLeaveModal);
+    document.getElementById('btn-leave-institution-editor').addEventListener('click', openLeaveModal);
+
+    // Enable confirm button only when user types LEAVE
+    leaveInput.addEventListener('input', () => {
+      leaveBtn.disabled = leaveInput.value.trim() !== 'LEAVE';
+    });
+
+    // Cancel
+    document.getElementById('btn-cancel-leave').addEventListener('click', () => {
+      leaveModal.classList.add('hidden');
+    });
+
+    // Confirm leave
+    leaveBtn.addEventListener('click', async () => {
+      if (leaveInput.value.trim() !== 'LEAVE') return;
+
+      const institutionId = Auth.getInstitutionId();
+      const uid = Auth.currentUser.uid;
+
+      // Final safety check
+      if (Auth.isAdmin()) {
+        const isLast = await DB.isLastAdmin(institutionId, uid);
+        if (isLast) {
+          App.showToast('Cannot leave — you are the only admin. Promote another member first.', 'error');
+          leaveModal.classList.add('hidden');
+          return;
+        }
+      }
+
+      // Remove user document (removes institution membership)
+      await DB.deleteUser(uid);
+
+      // Sign out and return to login
+      leaveModal.classList.add('hidden');
+      Auth.userData = null;
+      App.showToast('You have left the institution.', 'success');
+      await Auth.signOut();
+    });
+
     // --- User menu dropdowns ---
     App.setupDropdown('btn-user-menu', 'user-dropdown');
     App.setupDropdown('btn-user-menu-editor', 'user-dropdown-editor');
