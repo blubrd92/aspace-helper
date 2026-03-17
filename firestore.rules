@@ -1,44 +1,126 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
 
-    // Users can read/write their own user doc
-    // Allow create for any authenticated user (needed during onboarding)
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function belongsToInstitution(instId) {
+      return userExists() && getUserDoc().institution_id == instId;
+    }
+
+    function isAdminOf(instId) {
+      return belongsToInstitution(instId) && getUserDoc().role == "admin";
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // ============================================================
+    // USERS COLLECTION
+    // ============================================================
+    // Document ID = Firebase Auth UID.
+    // Users can read/write their own document.
+    // Admins can read all user docs in their institution (team management).
+    // Admins can update other users' roles within their institution.
+    // Admins can delete users from their institution.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId ||
+        (userExists()
+          && getUserDoc().role == "admin"
+          && getUserDoc().institution_id == resource.data.institution_id)
+      );
+
+      // Users can create their own doc during onboarding
+      allow create: if isSignedIn()
+        && request.auth.uid == userId;
+
+      // Self-update: can change anything EXCEPT role and institution_id
+      // Admin update: can change fields for users in their institution
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.institution_id == resource.data.institution_id)
+        ||
+        (userExists()
+          && getUserDoc().role == "admin"
+          && getUserDoc().institution_id == resource.data.institution_id
+          && request.resource.data.institution_id == resource.data.institution_id)
+      );
+
+      // Users can delete their own doc (leave institution)
+      // Admins can delete users from their institution
+      allow delete: if isSignedIn() && (
+        request.auth.uid == userId ||
+        (userExists()
+          && getUserDoc().role == "admin"
+          && getUserDoc().institution_id == resource.data.institution_id)
+      );
     }
 
-    // Institution members can read their institution
-    // Only admins can write institution config
-    // Allow create for any authenticated user (needed when creating a new institution)
+    // ============================================================
+    // INSTITUTIONS COLLECTION
+    // ============================================================
     match /institutions/{instId} {
-      allow read: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.institution_id == instId;
-      allow write: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.institution_id == instId &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
-      allow create: if request.auth != null;
+      allow read: if isSignedIn() && belongsToInstitution(instId);
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && isAdminOf(instId);
+      allow delete: if isSignedIn() && isAdminOf(instId);
     }
 
-    // Invite codes: anyone authenticated can read (needed to look up codes during join flow)
-    // Only admins of the linked institution can write/delete
+    // ============================================================
+    // INVITE CODES COLLECTION
+    // ============================================================
+    // Document ID = the invite code (guarantees uniqueness).
     match /invite_codes/{code} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.institution_id ==
-        resource.data.institution_id &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow delete: if isSignedIn()
+        && userExists()
+        && getUserDoc().role == "admin"
+        && getUserDoc().institution_id == resource.data.institution_id;
+      allow update: if false;
     }
 
-    // Institution members can read/write projects belonging to their institution
+    // ============================================================
+    // PROJECTS COLLECTION
+    // ============================================================
     match /projects/{projectId} {
-      allow read, write: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.institution_id ==
-        resource.data.institution_id;
-      allow create: if request.auth != null;
+      allow read: if isSignedIn()
+        && userExists()
+        && getUserDoc().institution_id == resource.data.institution_id;
+
+      allow create: if isSignedIn()
+        && userExists()
+        && getUserDoc().institution_id == request.resource.data.institution_id;
+
+      // Members can update, but cannot change institution_id
+      allow update: if isSignedIn()
+        && userExists()
+        && getUserDoc().institution_id == resource.data.institution_id
+        && request.resource.data.institution_id == resource.data.institution_id;
+
+      // Only admins can delete projects
+      allow delete: if isSignedIn()
+        && userExists()
+        && getUserDoc().role == "admin"
+        && getUserDoc().institution_id == resource.data.institution_id;
+    }
+
+    // ============================================================
+    // CATCH-ALL: deny everything else
+    // ============================================================
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
