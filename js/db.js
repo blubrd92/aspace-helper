@@ -216,9 +216,15 @@ const DB = {
     try {
       const snapshot = await db.collection('projects')
         .where('institution_id', '==', institutionId)
-        .orderBy('updated_at', 'desc')
         .get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort client-side to avoid requiring a Firestore composite index
+      projects.sort((a, b) => {
+        const aTime = a.updated_at ? a.updated_at.toMillis() : 0;
+        const bTime = b.updated_at ? b.updated_at.toMillis() : 0;
+        return bTime - aTime;
+      });
+      return projects;
     } catch (error) {
       console.error('Error getting projects:', error);
       return [];

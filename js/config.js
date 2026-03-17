@@ -122,7 +122,7 @@ const Config = {
           <span class="field-config-code">${field.aspace_code}</span>
         `;
 
-        const toggle = document.createElement('div');
+        const toggle = document.createElement('label');
         toggle.className = 'toggle';
         toggle.innerHTML = `
           <input type="checkbox" data-field-id="${field.id}"
