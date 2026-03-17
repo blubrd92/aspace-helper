@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASpace Helper</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- ===== LOGIN VIEW ===== -->
+  <div id="view-login" class="view active">
+    <div class="login-container">
+      <h1 class="app-title">ASpace Helper</h1>
+      <p class="app-subtitle">Prepare data for ArchivesSpace bulk import — the easy way.</p>
+      <button id="btn-google-signin" class="btn btn-primary btn-large">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z" fill="#4285F4"/>
+          <path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z" fill="#34A853"/>
+          <path d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z" fill="#FBBC05"/>
+          <path d="M8.98 3.58c1.16 0 2.2.4 3.02 1.18l2.27-2.26A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.9z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== ONBOARDING VIEW ===== -->
+  <div id="view-onboarding" class="view">
+    <div class="onboarding-container">
+      <h2>Welcome to ASpace Helper</h2>
+      <p>Let's get you set up. Are you starting a new institution or joining an existing team?</p>
+      <div class="onboarding-options">
+        <button id="btn-create-institution" class="btn btn-primary">Create New Institution</button>
+        <button id="btn-join-institution" class="btn btn-secondary">Join Existing Institution</button>
+      </div>
+
+      <!-- Create Institution Form -->
+      <div id="onboarding-create" class="onboarding-form hidden">
+        <h3>Create Your Institution</h3>
+        <label for="input-institution-name">Institution Name</label>
+        <input type="text" id="input-institution-name" placeholder="e.g., Marin County History Library" maxlength="100">
+        <button id="btn-confirm-create" class="btn btn-primary">Create</button>
+        <button id="btn-back-onboarding" class="btn btn-text">Back</button>
+      </div>
+
+      <!-- Join Institution Form -->
+      <div id="onboarding-join" class="onboarding-form hidden">
+        <h3>Join an Institution</h3>
+        <label for="input-invite-code">Invite Code</label>
+        <input type="text" id="input-invite-code" placeholder="e.g., MARIN-7K2X" maxlength="20">
+        <div id="join-confirm" class="hidden">
+          <p>Join <strong id="join-institution-name"></strong>?</p>
+          <button id="btn-confirm-join" class="btn btn-primary">Join</button>
+        </div>
+        <button id="btn-lookup-code" class="btn btn-secondary">Look Up Code</button>
+        <button id="btn-back-onboarding-join" class="btn btn-text">Back</button>
+        <p id="join-error" class="error-text hidden"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PROJECT LIST VIEW ===== -->
+  <div id="view-projects" class="view">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <h1 class="app-title-small">ASpace Helper</h1>
+      </div>
+      <div class="top-bar-right">
+        <span id="institution-name-display" class="institution-badge"></span>
+        <div class="user-menu">
+          <button id="btn-user-menu" class="btn btn-icon" aria-label="User menu">
+            <span id="user-avatar" class="avatar"></span>
+            <span id="user-name-display"></span>
+          </button>
+          <div id="user-dropdown" class="dropdown hidden">
+            <button id="btn-my-defaults" class="dropdown-item">My Defaults</button>
+            <button id="btn-settings" class="dropdown-item admin-only">Settings</button>
+            <hr>
+            <button id="btn-signout" class="dropdown-item">Sign Out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="project-list-main">
+      <div id="invite-code-banner" class="banner hidden">
+        <p>Share this code with your team so they can join: <strong id="invite-code-display"></strong></p>
+        <button id="btn-copy-invite" class="btn btn-small">Copy</button>
+      </div>
+
+      <div class="project-list-header">
+        <h2>Projects</h2>
+        <button id="btn-new-project" class="btn btn-primary">New Project</button>
+      </div>
+
+      <div id="project-list" class="project-list">
+        <!-- Projects populated dynamically -->
+      </div>
+
+      <div id="empty-projects" class="empty-state hidden">
+        <p>No projects yet. Create your first project to get started.</p>
+      </div>
+    </main>
+
+    <!-- New Project Modal -->
+    <div id="modal-new-project" class="modal hidden" role="dialog" aria-labelledby="modal-new-project-title">
+      <div class="modal-content">
+        <h3 id="modal-new-project-title">New Project</h3>
+        <label for="input-project-name">Project Name</label>
+        <input type="text" id="input-project-name" placeholder="e.g., Garcia Family Papers">
+        <label for="input-resource-id">Resource Identifier</label>
+        <div class="radio-group">
+          <label><input type="radio" name="id-type" value="res_uri" checked> Resource URI</label>
+          <label><input type="radio" name="id-type" value="ead"> EAD ID</label>
+        </div>
+        <input type="text" id="input-resource-id" placeholder="/repositories/2/resources/123">
+        <div class="modal-actions">
+          <button id="btn-cancel-new-project" class="btn btn-secondary">Cancel</button>
+          <button id="btn-create-project" class="btn btn-primary">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== EDITOR VIEW ===== -->
+  <div id="view-editor" class="view">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-projects" class="btn btn-icon" aria-label="Back to projects">&larr;</button>
+        <h1 id="editor-project-name" class="app-title-small"></h1>
+        <span id="editor-resource-id" class="resource-id-badge"></span>
+      </div>
+      <div class="top-bar-center">
+        <button id="btn-validate-all" class="btn btn-secondary">Validate All</button>
+        <button id="btn-export-csv" class="btn btn-primary">Export CSV</button>
+      </div>
+      <div class="top-bar-right">
+        <span id="sync-status" class="sync-indicator">Saved</span>
+        <div class="user-menu">
+          <button id="btn-user-menu-editor" class="btn btn-icon" aria-label="User menu">
+            <span id="user-avatar-editor" class="avatar"></span>
+          </button>
+          <div id="user-dropdown-editor" class="dropdown hidden">
+            <button id="btn-my-defaults-editor" class="dropdown-item">My Defaults</button>
+            <button id="btn-settings-editor" class="dropdown-item admin-only">Settings</button>
+            <hr>
+            <button id="btn-back-to-projects" class="dropdown-item">Switch Project</button>
+            <button id="btn-signout-editor" class="dropdown-item">Sign Out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Current Defaults Bar -->
+    <div id="defaults-bar" class="defaults-bar collapsed">
+      <div class="defaults-bar-header">
+        <span class="defaults-bar-box">
+          Box: <strong id="current-box-number">—</strong>
+        </span>
+        <button id="btn-toggle-defaults" class="btn btn-text btn-small">Show Defaults</button>
+      </div>
+      <div id="defaults-bar-content" class="defaults-bar-content hidden">
+        <!-- Populated dynamically with current defaults -->
+      </div>
+    </div>
+
+    <!-- Two-Panel Layout -->
+    <div class="editor-panels">
+      <!-- Left Panel: Hierarchy Tree -->
+      <div class="panel panel-tree" id="panel-tree">
+        <div class="panel-header">
+          <h3>Hierarchy</h3>
+          <div class="tree-actions">
+            <button id="btn-add-entry" class="btn btn-small btn-primary">Add Entry</button>
+          </div>
+        </div>
+        <div id="hierarchy-tree" class="hierarchy-tree" role="tree">
+          <!-- Tree items populated dynamically -->
+        </div>
+        <div id="empty-tree" class="empty-state">
+          <p>No entries yet. Click "Add Entry" to start building your finding aid.</p>
+        </div>
+      </div>
+
+      <!-- Resize Handle -->
+      <div class="panel-resize-handle" id="panel-resize"></div>
+
+      <!-- Right Panel: Entry Form -->
+      <div class="panel panel-form" id="panel-form">
+        <div id="no-selection" class="empty-state">
+          <p>Select an entry from the tree to edit it, or add a new entry.</p>
+        </div>
+        <div id="entry-form-container" class="hidden">
+          <div class="form-header">
+            <h3 id="form-entry-title">Edit Entry</h3>
+            <div class="form-actions">
+              <button id="btn-reset-defaults" class="btn btn-text btn-small">Reset to Defaults</button>
+              <button id="btn-delete-entry" class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </div>
+          <form id="entry-form" novalidate>
+            <!-- Form sections populated dynamically by form.js -->
+          </form>
+          <div class="form-footer">
+            <button id="btn-save-entry" class="btn btn-primary">Save Entry</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Validation Report Modal -->
+  <div id="modal-validation" class="modal hidden" role="dialog" aria-labelledby="modal-validation-title">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3 id="modal-validation-title">Validation Report</h3>
+        <button class="btn-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="validation-report" class="validation-report">
+        <!-- Populated dynamically -->
+      </div>
+      <div class="modal-actions">
+        <button id="btn-close-validation" class="btn btn-secondary">Close</button>
+        <button id="btn-export-anyway" class="btn btn-primary hidden">Export Anyway</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Defaults Modal -->
+  <div id="modal-my-defaults" class="modal hidden" role="dialog" aria-labelledby="modal-my-defaults-title">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3 id="modal-my-defaults-title">My Defaults</h3>
+        <button class="btn-close" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-description">These are your personal defaults. They apply to every project you work on. Your institution's defaults are shown in gray for reference. You can override any of them.</p>
+      <div id="my-defaults-list" class="defaults-list">
+        <!-- Populated dynamically -->
+      </div>
+      <div class="modal-actions">
+        <button id="btn-cancel-my-defaults" class="btn btn-secondary">Cancel</button>
+        <button id="btn-save-my-defaults" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal (Admin Only) -->
+  <div id="modal-settings" class="modal hidden" role="dialog" aria-labelledby="modal-settings-title">
+    <div class="modal-content modal-xlarge">
+      <div class="modal-header">
+        <h3 id="modal-settings-title">Settings</h3>
+        <button class="btn-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="settings-tabs">
+        <button class="tab-btn active" data-tab="fields">Fields</button>
+        <button class="tab-btn" data-tab="inst-defaults">Institution Defaults</button>
+        <button class="tab-btn" data-tab="team">Team</button>
+        <button class="tab-btn" data-tab="general">General</button>
+      </div>
+      <div class="settings-content">
+        <!-- Fields Tab -->
+        <div id="tab-fields" class="tab-panel active">
+          <p>Toggle fields on or off for your institution. Disabled fields won't appear in the data entry form or in exports.</p>
+          <div id="fields-config-list" class="fields-config-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+        <!-- Institution Defaults Tab -->
+        <div id="tab-inst-defaults" class="tab-panel hidden">
+          <p>Set default values that apply to all users as a baseline. Users can override these with their own personal defaults.</p>
+          <div id="inst-defaults-list" class="defaults-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+        <!-- Team Tab -->
+        <div id="tab-team" class="tab-panel hidden">
+          <div class="team-invite-section">
+            <h4>Invite Code</h4>
+            <p>Share this code with new team members:</p>
+            <div class="invite-code-row">
+              <strong id="settings-invite-code"></strong>
+              <button id="btn-copy-invite-settings" class="btn btn-small">Copy</button>
+              <button id="btn-regenerate-code" class="btn btn-small btn-danger">Regenerate</button>
+            </div>
+          </div>
+          <h4>Team Members</h4>
+          <div id="team-list" class="team-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+        <!-- General Tab -->
+        <div id="tab-general" class="tab-panel hidden">
+          <label for="settings-inst-name">Institution Name</label>
+          <input type="text" id="settings-inst-name" maxlength="100">
+          <label for="settings-aspace-version">Target ASpace Version</label>
+          <select id="settings-aspace-version">
+            <option value="4.1">4.1 (Current)</option>
+            <option value="3.4">3.4</option>
+            <option value="2.8">2.8</option>
+          </select>
+          <div class="settings-actions-row">
+            <button id="btn-export-config" class="btn btn-secondary">Export Configuration</button>
+            <button id="btn-import-config" class="btn btn-secondary">Import Configuration</button>
+            <input type="file" id="input-import-config" accept=".json" class="hidden">
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-close-settings" class="btn btn-secondary">Close</button>
+        <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Dialog (reusable) -->
+  <div id="modal-confirm" class="modal hidden" role="alertdialog" aria-labelledby="modal-confirm-title">
+    <div class="modal-content modal-small">
+      <h3 id="modal-confirm-title"></h3>
+      <p id="modal-confirm-message"></p>
+      <div class="modal-actions">
+        <button id="btn-confirm-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="btn-confirm-ok" class="btn btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast/notification area -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Firebase SDKs (v9 compat CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- App Scripts -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/field-registry.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/validation.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/tree.js"></script>
+  <script src="js/form.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
