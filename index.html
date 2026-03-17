@@ -19,7 +19,13 @@
           <label for="signin-email">Email</label>
           <input type="email" id="signin-email" placeholder="you@library.org" autocomplete="email">
           <label for="signin-password">Password</label>
-          <input type="password" id="signin-password" placeholder="Password" autocomplete="current-password">
+          <div class="password-wrapper">
+            <input type="password" id="signin-password" placeholder="Password" autocomplete="current-password">
+            <button type="button" class="btn-toggle-password" aria-label="Show password" data-target="signin-password">
+              <svg class="icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="icon-eye-off hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
         </div>
         <p id="signin-error" class="auth-error hidden"></p>
         <button id="btn-signin" class="btn btn-primary btn-large btn-block">Sign In</button>
@@ -46,9 +52,21 @@
           <label for="create-email">Email</label>
           <input type="email" id="create-email" placeholder="you@library.org" autocomplete="email">
           <label for="create-password">Password</label>
-          <input type="password" id="create-password" placeholder="At least 6 characters" autocomplete="new-password">
+          <div class="password-wrapper">
+            <input type="password" id="create-password" placeholder="At least 6 characters" autocomplete="new-password">
+            <button type="button" class="btn-toggle-password" aria-label="Show password" data-target="create-password">
+              <svg class="icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="icon-eye-off hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
           <label for="create-password-confirm">Confirm Password</label>
-          <input type="password" id="create-password-confirm" placeholder="Re-enter password" autocomplete="new-password">
+          <div class="password-wrapper">
+            <input type="password" id="create-password-confirm" placeholder="Re-enter password" autocomplete="new-password">
+            <button type="button" class="btn-toggle-password" aria-label="Show password" data-target="create-password-confirm">
+              <svg class="icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="icon-eye-off hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
         </div>
         <p id="create-error" class="auth-error hidden"></p>
         <button id="btn-create-account" class="btn btn-primary btn-large btn-block">Create Account</button>

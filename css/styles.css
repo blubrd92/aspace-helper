@@ -220,6 +220,40 @@ html, body {
   color: var(--color-text-muted);
 }
 
+/* Password field with visibility toggle */
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 40px;
+}
+
+.btn-toggle-password {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+.btn-toggle-password:hover {
+  color: var(--color-text);
+}
+
+.btn-toggle-password:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
 /* ===== Onboarding View ===== */
 .onboarding-container {
   display: flex;
@@ -356,6 +390,7 @@ label {
 input[type="text"],
 input[type="number"],
 input[type="email"],
+input[type="password"],
 select,
 textarea {
   display: block;

@@ -480,6 +480,18 @@ const App = {
       if (e.key === 'Enter') document.getElementById('btn-send-reset').click();
     });
 
+    // --- Auth: Password visibility toggles ---
+    document.querySelectorAll('.btn-toggle-password').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.target);
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.querySelector('.icon-eye').classList.toggle('hidden', isPassword);
+        btn.querySelector('.icon-eye-off').classList.toggle('hidden', !isPassword);
+        btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      });
+    });
+
     // --- Onboarding ---
     const btnCreateInst = document.getElementById('btn-create-institution');
     const btnJoinInst = document.getElementById('btn-join-institution');
