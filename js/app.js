@@ -5,6 +5,10 @@ const App = {
   currentProject: null,
   isDirty: false,
   saveTimer: null,
+  _projectCache: [],         // cached project list for client-side filtering
+  _memberNameCache: {},      // uid -> display_name lookup
+  _projectFilter: 'all',    // 'all' or 'mine'
+  _projectSearch: '',        // current search query
 
   // ===== INITIALIZATION =====
 
@@ -105,11 +109,40 @@ const App = {
   async renderProjectList() {
     const institutionId = Auth.getInstitutionId();
     const projects = await DB.getProjectsByInstitution(institutionId);
+
+    // Cache projects for client-side filtering
+    App._projectCache = projects;
+
+    // Build member name cache (uid -> display_name) for "created by" display
+    const creatorUids = [...new Set(projects.map(p => p.created_by).filter(Boolean))];
+    const uncachedUids = creatorUids.filter(uid => !App._memberNameCache[uid]);
+    if (uncachedUids.length > 0) {
+      const members = await DB.getUsersByInstitution(institutionId);
+      for (const m of members) {
+        App._memberNameCache[m.id] = m.display_name || m.email || 'Unknown';
+      }
+    }
+
+    // Reset filter state
+    App._projectFilter = 'all';
+    App._projectSearch = '';
+    const searchInput = document.getElementById('input-project-search');
+    if (searchInput) searchInput.value = '';
+    const allBtn = document.getElementById('btn-filter-all');
+    const mineBtn = document.getElementById('btn-filter-mine');
+    if (allBtn) allBtn.classList.add('active');
+    if (mineBtn) mineBtn.classList.remove('active');
+
+    App._renderFilteredProjects();
+  },
+
+  _renderFilteredProjects() {
     const container = document.getElementById('project-list');
     const emptyState = document.getElementById('empty-projects');
-
     if (!container) return;
     container.innerHTML = '';
+
+    const projects = App._projectCache;
 
     if (projects.length === 0) {
       emptyState.classList.remove('hidden');
@@ -118,7 +151,28 @@ const App = {
 
     emptyState.classList.add('hidden');
 
-    for (const project of projects) {
+    // Apply filters
+    const search = App._projectSearch.toLowerCase();
+    const currentUid = Auth.currentUser ? Auth.currentUser.uid : null;
+
+    const filtered = projects.filter(project => {
+      // Filter by ownership
+      if (App._projectFilter === 'mine' && project.created_by !== currentUid) return false;
+      // Filter by search text (match name or creator name)
+      if (search) {
+        const name = (project.name || '').toLowerCase();
+        const creator = (App._memberNameCache[project.created_by] || '').toLowerCase();
+        if (!name.includes(search) && !creator.includes(search)) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="project-list-empty-filter">No projects match your search.</div>`;
+      return;
+    }
+
+    for (const project of filtered) {
       const card = document.createElement('div');
       card.className = 'project-card';
 
@@ -126,11 +180,13 @@ const App = {
       const updatedAt = project.updated_at
         ? new Date(project.updated_at.seconds * 1000).toLocaleDateString()
         : 'Never';
+      const creatorName = App._memberNameCache[project.created_by] || '';
+      const creatorSuffix = creatorName ? ` &middot; ${creatorName}` : '';
 
       card.innerHTML = `
         <div class="project-card-info">
           <h4>${project.name}</h4>
-          <span class="project-card-meta">${entryCount} entries &middot; Updated ${updatedAt}</span>
+          <span class="project-card-meta">${entryCount} entries &middot; Updated ${updatedAt}${creatorSuffix}</span>
         </div>
         <div class="project-card-actions">
           <span class="project-card-status">${project.status || 'in_progress'}</span>
@@ -637,6 +693,26 @@ const App = {
         App.loadAndShowProjects();
         App.showToast('Welcome! You\'ve joined the team.', 'success');
       }
+    });
+
+    // --- Project List: Search & Filters ---
+    document.getElementById('input-project-search').addEventListener('input', (e) => {
+      App._projectSearch = e.target.value;
+      App._renderFilteredProjects();
+    });
+
+    document.getElementById('btn-filter-all').addEventListener('click', () => {
+      App._projectFilter = 'all';
+      document.getElementById('btn-filter-all').classList.add('active');
+      document.getElementById('btn-filter-mine').classList.remove('active');
+      App._renderFilteredProjects();
+    });
+
+    document.getElementById('btn-filter-mine').addEventListener('click', () => {
+      App._projectFilter = 'mine';
+      document.getElementById('btn-filter-mine').classList.add('active');
+      document.getElementById('btn-filter-all').classList.remove('active');
+      App._renderFilteredProjects();
     });
 
     // --- Project List ---
