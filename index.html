@@ -400,6 +400,20 @@
     </div>
   </div>
 
+  <!-- Delete Project Modal -->
+  <div id="modal-delete-project" class="modal hidden" role="alertdialog" aria-labelledby="modal-delete-project-title">
+    <div class="modal-content modal-small">
+      <h3 id="modal-delete-project-title">Delete Project</h3>
+      <p>This will permanently delete <strong id="delete-project-name-display"></strong> and all its entries. This cannot be undone.</p>
+      <label for="input-delete-project-confirm">Type the project name to confirm</label>
+      <input type="text" id="input-delete-project-confirm" placeholder="" autocomplete="off">
+      <div class="modal-actions">
+        <button id="btn-cancel-delete-project" class="btn btn-secondary">Cancel</button>
+        <button id="btn-confirm-delete-project" class="btn btn-danger" disabled>Delete Project</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Leave Institution Modal -->
   <div id="modal-leave-institution" class="modal hidden" role="alertdialog" aria-labelledby="modal-leave-title">
     <div class="modal-content modal-small">

@@ -144,20 +144,12 @@ const App = {
         App.openProject(project.id);
       });
 
-      // Delete button
+      // Delete button — opens typed confirmation modal
       const deleteBtn = card.querySelector('[data-delete-project]');
       if (deleteBtn) {
         deleteBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          App.showConfirm(
-            'Delete Project',
-            `Are you sure you want to delete "${project.name}"? This cannot be undone.`,
-            async () => {
-              await DB.deleteProject(project.id);
-              App.renderProjectList();
-              App.showToast('Project deleted.', 'success');
-            }
-          );
+          App.showDeleteProjectModal(project.id, project.name);
         });
       }
 
@@ -348,6 +340,22 @@ const App = {
     });
 
     modal.classList.remove('hidden');
+  },
+
+  // Show typed-confirmation modal for project deletion
+  _deleteProjectId: null,
+
+  showDeleteProjectModal(projectId, projectName) {
+    App._deleteProjectId = projectId;
+    const modal = document.getElementById('modal-delete-project');
+    const input = document.getElementById('input-delete-project-confirm');
+    const confirmBtn = document.getElementById('btn-confirm-delete-project');
+    document.getElementById('delete-project-name-display').textContent = projectName;
+    input.value = '';
+    input.placeholder = projectName;
+    confirmBtn.disabled = true;
+    modal.classList.remove('hidden');
+    input.focus();
   },
 
   closeModal(modalId) {
@@ -740,6 +748,30 @@ const App = {
       Auth.userData = null;
       App.showToast('You have left the institution.', 'success');
       await Auth.signOut();
+    });
+
+    // --- Delete Project modal ---
+    const deleteProjectInput = document.getElementById('input-delete-project-confirm');
+    const deleteProjectBtn = document.getElementById('btn-confirm-delete-project');
+    const deleteProjectModal = document.getElementById('modal-delete-project');
+
+    deleteProjectInput.addEventListener('input', () => {
+      const expected = document.getElementById('delete-project-name-display').textContent;
+      deleteProjectBtn.disabled = deleteProjectInput.value.trim() !== expected;
+    });
+
+    document.getElementById('btn-cancel-delete-project').addEventListener('click', () => {
+      deleteProjectModal.classList.add('hidden');
+      App._deleteProjectId = null;
+    });
+
+    deleteProjectBtn.addEventListener('click', async () => {
+      if (!App._deleteProjectId || deleteProjectBtn.disabled) return;
+      await DB.deleteProject(App._deleteProjectId);
+      deleteProjectModal.classList.add('hidden');
+      App._deleteProjectId = null;
+      App.renderProjectList();
+      App.showToast('Project deleted.', 'success');
     });
 
     // --- User menu dropdowns ---
