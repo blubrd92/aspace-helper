@@ -4,12 +4,12 @@
 // Replace these placeholder values with your actual Firebase project config.
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCuECv_JVM8AwYAAeGf1jk8G5F_Xh4Lw3s",
+  authDomain: "aspace-helper.firebaseapp.com",
+  projectId: "aspace-helper",
+  storageBucket: "aspace-helper.firebasestorage.app",
+  messagingSenderId: "444451094910",
+  appId: "1:444451094910:web:a70d01058a445ebcd5332f"
 };
 
 // Initialize Firebase
