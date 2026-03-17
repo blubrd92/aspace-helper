@@ -3,6 +3,14 @@
 
 const DB = {
 
+  // Show a toast for Firestore errors (if App is available)
+  _showError(message, error) {
+    console.error(message, error);
+    if (typeof App !== 'undefined' && App.showToast) {
+      App.showToast(message, 'error');
+    }
+  },
+
   // ===== USERS =====
 
   async getUser(uid) {
@@ -10,7 +18,7 @@ const DB = {
       const doc = await db.collection('users').doc(uid).get();
       return doc.exists ? { id: doc.id, ...doc.data() } : null;
     } catch (error) {
-      console.error('Error getting user:', error);
+      DB._showError('Failed to load user data.', error);
       return null;
     }
   },
@@ -28,7 +36,7 @@ const DB = {
       });
       return true;
     } catch (error) {
-      console.error('Error creating user:', error);
+      DB._showError('Failed to create user account.', error);
       return false;
     }
   },
@@ -38,7 +46,7 @@ const DB = {
       await db.collection('users').doc(uid).update(data);
       return true;
     } catch (error) {
-      console.error('Error updating user:', error);
+      DB._showError('Failed to update user.', error);
       return false;
     }
   },
@@ -49,7 +57,7 @@ const DB = {
         .where('institution_id', '==', institutionId).get();
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
-      console.error('Error getting users:', error);
+      DB._showError('Failed to load team members.', error);
       return [];
     }
   },
@@ -59,7 +67,7 @@ const DB = {
       await db.collection('users').doc(uid).delete();
       return true;
     } catch (error) {
-      console.error('Error deleting user:', error);
+      DB._showError('Failed to remove user.', error);
       return false;
     }
   },
@@ -89,7 +97,7 @@ const DB = {
       const doc = await db.collection('institutions').doc(institutionId).get();
       return doc.exists ? { id: doc.id, ...doc.data() } : null;
     } catch (error) {
-      console.error('Error getting institution:', error);
+      DB._showError('Failed to load institution.', error);
       return null;
     }
   },
@@ -120,7 +128,7 @@ const DB = {
       });
       return docRef.id;
     } catch (error) {
-      console.error('Error creating institution:', error);
+      DB._showError('Failed to create institution.', error);
       return null;
     }
   },
@@ -130,7 +138,7 @@ const DB = {
       await db.collection('institutions').doc(institutionId).update(data);
       return true;
     } catch (error) {
-      console.error('Error updating institution:', error);
+      DB._showError('Failed to update institution.', error);
       return false;
     }
   },
@@ -156,8 +164,7 @@ const DB = {
       });
       return true;
     } catch (error) {
-      // If the document already exists, this will fail (collision)
-      console.error('Error creating invite code:', error);
+      DB._showError('Failed to create invite code.', error);
       return false;
     }
   },
@@ -168,7 +175,7 @@ const DB = {
       if (!doc.exists) return null;
       return doc.data();
     } catch (error) {
-      console.error('Error looking up invite code:', error);
+      DB._showError('Failed to look up invite code.', error);
       return null;
     }
   },
@@ -178,7 +185,7 @@ const DB = {
       await db.collection('invite_codes').doc(code.toUpperCase()).delete();
       return true;
     } catch (error) {
-      console.error('Error deleting invite code:', error);
+      DB._showError('Failed to delete invite code.', error);
       return false;
     }
   },
@@ -205,7 +212,7 @@ const DB = {
       await batch.commit();
       return newCode;
     } catch (error) {
-      console.error('Error regenerating invite code:', error);
+      DB._showError('Failed to regenerate invite code.', error);
       return null;
     }
   },
@@ -226,7 +233,7 @@ const DB = {
       });
       return projects;
     } catch (error) {
-      console.error('Error getting projects:', error);
+      DB._showError('Failed to load projects.', error);
       return [];
     }
   },
@@ -236,7 +243,7 @@ const DB = {
       const doc = await db.collection('projects').doc(projectId).get();
       return doc.exists ? { id: doc.id, ...doc.data() } : null;
     } catch (error) {
-      console.error('Error getting project:', error);
+      DB._showError('Failed to load project.', error);
       return null;
     }
   },
@@ -258,7 +265,7 @@ const DB = {
       });
       return docRef.id;
     } catch (error) {
-      console.error('Error creating project:', error);
+      DB._showError('Failed to create project.', error);
       return null;
     }
   },
@@ -272,7 +279,7 @@ const DB = {
       });
       return true;
     } catch (error) {
-      console.error('Error updating project:', error);
+      DB._showError('Failed to save project.', error);
       return false;
     }
   },
@@ -282,7 +289,7 @@ const DB = {
       await db.collection('projects').doc(projectId).delete();
       return true;
     } catch (error) {
-      console.error('Error deleting project:', error);
+      DB._showError('Failed to delete project.', error);
       return false;
     }
   }
