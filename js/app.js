@@ -11,6 +11,9 @@ const App = {
   init() {
     // Set up auth state listener
     Auth.onAuthStateChanged((user, userData) => {
+      // Hide loading spinner if it was shown
+      App.showAuthForm('signin');
+
       if (!user) {
         App.showView('login');
         return;
@@ -27,6 +30,16 @@ const App = {
 
     // Wire up all event listeners
     App.bindEvents();
+  },
+
+  // Show a specific auth form (signin, create, forgot, loading)
+  showAuthForm(formId) {
+    ['auth-signin', 'auth-create', 'auth-forgot', 'auth-loading'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('hidden', id !== `auth-${formId}`);
+    });
+    // Clear error/message elements when switching forms
+    document.querySelectorAll('.auth-error, .auth-message').forEach(el => el.classList.add('hidden'));
   },
 
   // ===== VIEW MANAGEMENT =====
@@ -345,9 +358,127 @@ const App = {
   // ===== EVENT BINDING =====
 
   bindEvents() {
-    // --- Login ---
-    document.getElementById('btn-google-signin')
-      .addEventListener('click', () => Auth.signIn());
+    // --- Auth: Form switching ---
+    document.getElementById('btn-show-create').addEventListener('click', () => App.showAuthForm('create'));
+    document.getElementById('btn-show-signin').addEventListener('click', () => App.showAuthForm('signin'));
+    document.getElementById('btn-show-forgot').addEventListener('click', () => App.showAuthForm('forgot'));
+    document.getElementById('btn-back-signin').addEventListener('click', () => App.showAuthForm('signin'));
+
+    // --- Auth: Email/Password Sign In ---
+    document.getElementById('btn-signin').addEventListener('click', async () => {
+      const email = document.getElementById('signin-email').value.trim();
+      const password = document.getElementById('signin-password').value;
+      const errorEl = document.getElementById('signin-error');
+
+      if (!email || !password) {
+        errorEl.textContent = 'Please enter your email and password.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      errorEl.classList.add('hidden');
+      App.showAuthForm('loading');
+
+      const result = await Auth.signInWithEmail(email, password);
+      if (result.error) {
+        App.showAuthForm('signin');
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+      }
+      // If success, onAuthStateChanged fires and handles navigation
+    });
+
+    // Allow Enter key to submit sign-in form
+    document.getElementById('signin-password').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('btn-signin').click();
+    });
+
+    // --- Auth: Create Account ---
+    document.getElementById('btn-create-account').addEventListener('click', async () => {
+      const email = document.getElementById('create-email').value.trim();
+      const password = document.getElementById('create-password').value;
+      const confirm = document.getElementById('create-password-confirm').value;
+      const errorEl = document.getElementById('create-error');
+
+      if (!email || !password || !confirm) {
+        errorEl.textContent = 'Please fill in all fields.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      // Client-side password match check before hitting Firebase
+      if (password !== confirm) {
+        errorEl.textContent = 'Passwords don\'t match.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      if (password.length < 6) {
+        errorEl.textContent = 'Password must be at least 6 characters.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      errorEl.classList.add('hidden');
+      App.showAuthForm('loading');
+
+      const result = await Auth.createAccountWithEmail(email, password);
+      if (result.error) {
+        App.showAuthForm('create');
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+      }
+      // If success, onAuthStateChanged fires and handles navigation
+    });
+
+    // Allow Enter key to submit create form
+    document.getElementById('create-password-confirm').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('btn-create-account').click();
+    });
+
+    // --- Auth: Google Sign In (both sign-in and sign-up buttons) ---
+    const googleSignInHandler = async () => {
+      App.showAuthForm('loading');
+      const result = await Auth.signInWithGoogle();
+      if (result.error) {
+        App.showAuthForm('signin');
+        const errorEl = document.getElementById('signin-error');
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+      }
+    };
+    document.getElementById('btn-google-signin').addEventListener('click', googleSignInHandler);
+    document.getElementById('btn-google-signup').addEventListener('click', googleSignInHandler);
+
+    // --- Auth: Forgot Password ---
+    document.getElementById('btn-send-reset').addEventListener('click', async () => {
+      const email = document.getElementById('forgot-email').value.trim();
+      const errorEl = document.getElementById('forgot-error');
+      const messageEl = document.getElementById('forgot-message');
+
+      if (!email) {
+        errorEl.textContent = 'Please enter your email address.';
+        errorEl.classList.remove('hidden');
+        messageEl.classList.add('hidden');
+        return;
+      }
+
+      errorEl.classList.add('hidden');
+
+      const result = await Auth.sendPasswordReset(email);
+      if (result.success) {
+        messageEl.textContent = 'If an account exists for that email, a password reset link has been sent. Check your inbox.';
+        messageEl.classList.remove('hidden');
+      } else {
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    // Allow Enter key to submit forgot password form
+    document.getElementById('forgot-email').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('btn-send-reset').click();
+    });
 
     // --- Onboarding ---
     const btnCreateInst = document.getElementById('btn-create-institution');
