@@ -59,6 +59,15 @@ const Validation = {
       }
     }
 
+    // Max length check
+    if (fieldDef.validation && fieldDef.validation.max_length && val.length > fieldDef.validation.max_length) {
+      return {
+        valid: false,
+        type: 'error',
+        message: `${fieldDef.label} exceeds the maximum length of ${fieldDef.validation.max_length.toLocaleString()} characters (currently ${val.length.toLocaleString()}).`
+      };
+    }
+
     // Digital object title: no quotes
     if (fieldDef.validation && fieldDef.validation.custom_rule === 'no_quotes') {
       if (val.includes('"') || val.includes("'")) {
@@ -100,6 +109,15 @@ const Validation = {
 
     if (!empty) return null;
 
+    // Other level required when level is "otherlevel"
+    if (id === 'other_level' && entryFields.level === 'otherlevel') {
+      return {
+        valid: false,
+        type: 'error',
+        message: 'Other Level is required when Level of Description is "otherlevel".'
+      };
+    }
+
     // Date group 1: if any date field is filled, label and type are required
     const dateFields1 = ['dates_label', 'begin', 'end', 'date_type', 'expression', 'date_certainty'];
     if (dateFields1.includes(id)) {
@@ -135,6 +153,44 @@ const Validation = {
         valid: false,
         type: 'error',
         message: 'Start date is required for single dates.'
+      };
+    }
+
+    // Date group 2: if any date_2 field is filled, label and type are required
+    const dateFields2 = ['dates_label_2', 'begin_2', 'end_2', 'date_type_2', 'expression_2', 'date_certainty_2'];
+    if (dateFields2.includes(id)) {
+      const anyDate2Filled = dateFields2.some(f => f !== id && entryFields[f]);
+      if (anyDate2Filled && (id === 'dates_label_2' || id === 'date_type_2')) {
+        return {
+          valid: false,
+          type: 'error',
+          message: `${fieldDef.label} is required when any date (2) field is filled.`
+        };
+      }
+    }
+
+    // Date type 2 "inclusive" or "bulk" requires begin_2 AND end_2
+    if (id === 'begin_2' && (entryFields.date_type_2 === 'inclusive' || entryFields.date_type_2 === 'bulk')) {
+      return {
+        valid: false,
+        type: 'error',
+        message: 'Start date (2) is required for date ranges (inclusive or bulk dates).'
+      };
+    }
+    if (id === 'end_2' && (entryFields.date_type_2 === 'inclusive' || entryFields.date_type_2 === 'bulk')) {
+      return {
+        valid: false,
+        type: 'error',
+        message: 'End date (2) is required for date ranges (inclusive or bulk dates).'
+      };
+    }
+
+    // Date type 2 "single" requires begin_2
+    if (id === 'begin_2' && entryFields.date_type_2 === 'single') {
+      return {
+        valid: false,
+        type: 'error',
+        message: 'Start date (2) is required for single dates.'
       };
     }
 

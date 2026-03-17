@@ -57,7 +57,10 @@ const FIELD_REGISTRY = [
     required: false,
     category: 'structure',
     default_value: null,
-    validation: {},
+    validation: {
+      pattern: '^[a-zA-Z0-9\\-_:\\.]*$',
+      max_length: 255
+    },
     enabled_by_default: false,
     supports_default: false
   },
@@ -141,7 +144,9 @@ const FIELD_REGISTRY = [
     required: false,
     category: 'structure',
     default_value: null,
-    validation: {},
+    validation: {
+      max_length: 65000
+    },
     enabled_by_default: false,
     supports_default: false
   },
@@ -156,7 +161,9 @@ const FIELD_REGISTRY = [
     required: false, // title OR date required, handled by row-level validation
     category: 'description',
     default_value: null,
-    validation: {},
+    validation: {
+      max_length: 8192
+    },
     enabled_by_default: true,
     supports_default: false
   },
@@ -291,7 +298,7 @@ const FIELD_REGISTRY = [
     category: 'dates',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['agent_relation', 'broadcast', 'copyright', 'creation', 'deaccession', 'digitized', 'event', 'existence', 'issued', 'modified', 'other', 'publication', 'record_keeping']
+      controlled_vocabulary: ['agent_relation', 'broadcast', 'copyright', 'creation', 'deaccession', 'digitized', 'event', 'existence', 'issued', 'modified', 'other', 'publication', 'record_keeping', 'usage']
     },
     enabled_by_default: true,
     supports_default: true
@@ -383,7 +390,7 @@ const FIELD_REGISTRY = [
     category: 'dates',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['agent_relation', 'broadcast', 'copyright', 'creation', 'deaccession', 'digitized', 'event', 'existence', 'issued', 'modified', 'other', 'publication', 'record_keeping']
+      controlled_vocabulary: ['agent_relation', 'broadcast', 'copyright', 'creation', 'deaccession', 'digitized', 'event', 'existence', 'issued', 'modified', 'other', 'publication', 'record_keeping', 'usage']
     },
     enabled_by_default: false,
     supports_default: false
@@ -656,7 +663,7 @@ const FIELD_REGISTRY = [
     category: 'containers',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['box', 'cabinet', 'carton', 'case', 'drawer', 'folder', 'frame', 'map-case', 'object', 'package', 'page', 'reel', 'shelf', 'volume']
+      controlled_vocabulary: ['box', 'carton', 'case', 'container', 'folder', 'frame', 'object', 'page', 'reel', 'volume']
     },
     enabled_by_default: true,
     supports_default: true
@@ -697,7 +704,7 @@ const FIELD_REGISTRY = [
     category: 'containers',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['box', 'cabinet', 'carton', 'case', 'drawer', 'folder', 'frame', 'map-case', 'object', 'package', 'page', 'reel', 'shelf', 'volume']
+      controlled_vocabulary: ['box', 'carton', 'case', 'container', 'folder', 'frame', 'object', 'page', 'reel', 'volume']
     },
     enabled_by_default: true,
     supports_default: true
@@ -725,7 +732,7 @@ const FIELD_REGISTRY = [
     category: 'containers',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['box', 'cabinet', 'carton', 'case', 'drawer', 'folder', 'frame', 'map-case', 'object', 'package', 'page', 'reel', 'shelf', 'volume']
+      controlled_vocabulary: ['box', 'carton', 'case', 'container', 'folder', 'frame', 'object', 'page', 'reel', 'volume']
     },
     enabled_by_default: false,
     supports_default: false
@@ -770,7 +777,7 @@ const FIELD_REGISTRY = [
     category: 'containers',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['box', 'cabinet', 'carton', 'case', 'drawer', 'folder', 'frame', 'map-case', 'object', 'package', 'page', 'reel', 'shelf', 'volume']
+      controlled_vocabulary: ['box', 'carton', 'case', 'container', 'folder', 'frame', 'object', 'page', 'reel', 'volume']
     },
     enabled_by_default: false,
     supports_default: false
@@ -811,7 +818,7 @@ const FIELD_REGISTRY = [
     category: 'containers',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['box', 'cabinet', 'carton', 'case', 'drawer', 'folder', 'frame', 'map-case', 'object', 'package', 'page', 'reel', 'shelf', 'volume']
+      controlled_vocabulary: ['box', 'carton', 'case', 'container', 'folder', 'frame', 'object', 'page', 'reel', 'volume']
     },
     enabled_by_default: false,
     supports_default: false
@@ -839,7 +846,7 @@ const FIELD_REGISTRY = [
     category: 'containers',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['box', 'cabinet', 'carton', 'case', 'drawer', 'folder', 'frame', 'map-case', 'object', 'package', 'page', 'reel', 'shelf', 'volume']
+      controlled_vocabulary: ['box', 'carton', 'case', 'container', 'folder', 'frame', 'object', 'page', 'reel', 'volume']
     },
     enabled_by_default: false,
     supports_default: false
@@ -1394,7 +1401,7 @@ function generateSubjectFields(count) {
         category: 'subjects',
         default_value: null,
         validation: {
-          controlled_vocabulary: ['aat', 'gmgpc', 'gsafd', 'lcgft', 'lcnaf', 'lcsh', 'local', 'mesh', 'rbgenr', 'tgm']
+          controlled_vocabulary: ['aat', 'cash', 'gmgpc', 'lcgft', 'lcsh', 'lcshac', 'local', 'mesh', 'nal', 'ram', 'rbgenr', 'rvm', 'sears', 'tgn']
         },
         enabled_by_default: i === 1,
         supports_default: true
