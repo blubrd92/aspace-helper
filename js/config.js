@@ -180,8 +180,120 @@ const Config = {
     }
   },
 
+  // Populate the profile section of My Defaults modal
+  renderProfile() {
+    const nameInput = document.getElementById('profile-display-name');
+    const emailInput = document.getElementById('profile-email');
+    const confirmGroup = document.getElementById('profile-email-confirm-group');
+    const passwordGroup = document.getElementById('profile-password-group');
+    const errorEl = document.getElementById('profile-error');
+
+    if (!nameInput || !emailInput) return;
+
+    // Populate current values
+    const displayName = (Auth.userData && Auth.userData.display_name) || '';
+    nameInput.value = displayName;
+    emailInput.value = Auth.currentUser ? Auth.currentUser.email : '';
+    emailInput._originalEmail = emailInput.value;
+
+    // Reset confirm/password fields
+    confirmGroup.style.display = 'none';
+    passwordGroup.style.display = 'none';
+    document.getElementById('profile-email-confirm').value = '';
+    document.getElementById('profile-current-password').value = '';
+    errorEl.classList.add('hidden');
+
+    // Google-signed-in users can't change email via password re-auth
+    const isGoogleUser = Auth.currentUser &&
+      Auth.currentUser.providerData.some(p => p.providerId === 'google.com');
+    if (isGoogleUser) {
+      emailInput.readOnly = true;
+      emailInput.title = 'Email is managed by your Google account';
+      emailInput.style.opacity = '0.6';
+    } else {
+      emailInput.readOnly = false;
+      emailInput.title = '';
+      emailInput.style.opacity = '';
+      // Show confirm + password fields when email changes (remove old listener to prevent stacking)
+      emailInput.removeEventListener('input', Config._onProfileEmailChange);
+      emailInput.addEventListener('input', Config._onProfileEmailChange);
+    }
+  },
+
+  _onProfileEmailChange() {
+    const emailInput = document.getElementById('profile-email');
+    const confirmGroup = document.getElementById('profile-email-confirm-group');
+    const passwordGroup = document.getElementById('profile-password-group');
+    const changed = emailInput.value.trim() !== emailInput._originalEmail;
+    confirmGroup.style.display = changed ? '' : 'none';
+    passwordGroup.style.display = changed ? '' : 'none';
+  },
+
+  // Save profile changes (display name and/or email). Returns true if all saves succeeded.
+  async saveProfile() {
+    const nameInput = document.getElementById('profile-display-name');
+    const emailInput = document.getElementById('profile-email');
+    const confirmInput = document.getElementById('profile-email-confirm');
+    const passwordInput = document.getElementById('profile-current-password');
+    const errorEl = document.getElementById('profile-error');
+
+    errorEl.classList.add('hidden');
+
+    const newName = nameInput.value.trim();
+    const newEmail = emailInput.value.trim();
+    const emailChanged = newEmail !== emailInput._originalEmail;
+
+    // Save display name if changed
+    const currentName = (Auth.userData && Auth.userData.display_name) || '';
+    if (newName !== currentName) {
+      const result = await Auth.updateDisplayName(newName);
+      if (!result.success) {
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+        return false;
+      }
+    }
+
+    // Save email if changed
+    if (emailChanged) {
+      // Format validation
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(newEmail)) {
+        errorEl.textContent = 'Please enter a valid email address.';
+        errorEl.classList.remove('hidden');
+        return false;
+      }
+
+      // Confirm email match
+      if (newEmail !== confirmInput.value.trim()) {
+        errorEl.textContent = 'Email addresses don\'t match.';
+        errorEl.classList.remove('hidden');
+        return false;
+      }
+
+      // Password required
+      const password = passwordInput.value;
+      if (!password) {
+        errorEl.textContent = 'Please enter your current password to change your email.';
+        errorEl.classList.remove('hidden');
+        return false;
+      }
+
+      const result = await Auth.updateEmail(newEmail, password);
+      if (!result.success) {
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+        return false;
+      }
+    }
+
+    return true;
+  },
+
   // Render My Defaults modal content
   renderMyDefaults() {
+    Config.renderProfile();
+
     const container = document.getElementById('my-defaults-list');
     if (!container) return;
 
@@ -293,8 +405,12 @@ const Config = {
     return success;
   },
 
-  // Save user defaults
+  // Save user defaults and profile changes
   async saveMyDefaults() {
+    // Save profile first — if it fails, don't save defaults either
+    const profileOk = await Config.saveProfile();
+    if (!profileOk) return false;
+
     const userDefaults = Config.collectDefaults(
       document.getElementById('my-defaults-list'), 'user-default'
     );
@@ -302,6 +418,7 @@ const Config = {
     const success = await DB.updateUser(Auth.currentUser.uid, { defaults: userDefaults });
     if (success) {
       Auth.userData.defaults = userDefaults;
+      App.updateUserDisplay();
       App.showToast('Your defaults have been saved.', 'success');
     } else {
       App.showToast('Failed to save defaults.', 'error');

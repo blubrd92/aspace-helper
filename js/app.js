@@ -74,11 +74,12 @@ const App = {
     const user = Auth.currentUser;
     if (!user) return;
 
-    // Set user name and avatar in all locations
-    const initial = (user.displayName || user.email || '?')[0].toUpperCase();
+    // Prefer Firestore display_name (user-editable) over Firebase Auth displayName
+    const displayName = (Auth.userData && Auth.userData.display_name) || user.displayName || user.email;
+    const initial = (displayName || '?')[0].toUpperCase();
 
     document.querySelectorAll('#user-name-display').forEach(el => {
-      el.textContent = user.displayName || user.email;
+      el.textContent = displayName;
     });
     document.querySelectorAll('.avatar').forEach(el => {
       el.textContent = initial;
@@ -497,6 +498,7 @@ const App = {
 
     // --- Auth: Create Account ---
     document.getElementById('btn-create-account').addEventListener('click', async () => {
+      const displayName = document.getElementById('create-display-name').value.trim();
       const email = document.getElementById('create-email').value.trim();
       const password = document.getElementById('create-password').value;
       const confirm = document.getElementById('create-password-confirm').value;
@@ -524,7 +526,7 @@ const App = {
       errorEl.classList.add('hidden');
       App.showAuthForm('loading');
 
-      const result = await Auth.createAccountWithEmail(email, password);
+      const result = await Auth.createAccountWithEmail(email, password, displayName || null);
       if (result.error) {
         App.showAuthForm('create');
         errorEl.textContent = result.error;

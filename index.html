@@ -49,6 +49,8 @@
       <!-- Create Account Form -->
       <div id="auth-create" class="auth-form hidden">
         <div class="auth-form-fields">
+          <label for="create-display-name">Display Name</label>
+          <input type="text" id="create-display-name" placeholder="Your name" autocomplete="name" maxlength="100">
           <label for="create-email">Email</label>
           <input type="email" id="create-email" placeholder="you@library.org" autocomplete="email">
           <label for="create-password">Password</label>
@@ -325,6 +327,31 @@
         <h3 id="modal-my-defaults-title">My Defaults</h3>
         <button class="btn-close" aria-label="Close">&times;</button>
       </div>
+      <!-- Profile Section -->
+      <div id="my-defaults-profile" class="profile-section">
+        <h4 class="profile-section-title">Profile</h4>
+        <div class="profile-fields">
+          <div class="profile-field">
+            <label for="profile-display-name">Display Name</label>
+            <input type="text" id="profile-display-name" placeholder="Your name" maxlength="100" autocomplete="name">
+          </div>
+          <div class="profile-field">
+            <label for="profile-email">Email Address</label>
+            <input type="email" id="profile-email" placeholder="you@library.org" autocomplete="email">
+          </div>
+          <div class="profile-field" id="profile-email-confirm-group" style="display:none;">
+            <label for="profile-email-confirm">Confirm New Email</label>
+            <input type="email" id="profile-email-confirm" placeholder="Re-enter new email" autocomplete="off">
+            <p class="profile-field-hint">Changing your email requires your current password.</p>
+          </div>
+          <div class="profile-field" id="profile-password-group" style="display:none;">
+            <label for="profile-current-password">Current Password</label>
+            <input type="password" id="profile-current-password" placeholder="Enter current password" autocomplete="current-password">
+          </div>
+          <p id="profile-error" class="auth-error hidden"></p>
+        </div>
+      </div>
+      <hr class="profile-divider">
       <p class="modal-description">These are your personal defaults. They apply to every project you work on. Your institution's defaults are shown in gray for reference. You can override any of them.</p>
       <div id="my-defaults-list" class="defaults-list">
         <!-- Populated dynamically -->

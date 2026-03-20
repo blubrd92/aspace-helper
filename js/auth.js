@@ -17,7 +17,9 @@ const Auth = {
     'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
     'auth/network-request-failed': 'Network error. Check your internet connection and try again.',
     'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
-    'auth/cancelled-popup-request': 'Google sign-in was cancelled.'
+    'auth/cancelled-popup-request': 'Google sign-in was cancelled.',
+    'auth/requires-recent-login': 'Please sign out and sign back in before changing your email.',
+    'auth/operation-not-allowed': 'Email update is not allowed. Please contact support.'
   },
 
   // Get a human-readable error message from a Firebase error
@@ -36,10 +38,13 @@ const Auth = {
     }
   },
 
-  // Create account with email and password
-  async createAccountWithEmail(email, password) {
+  // Create account with email and password, optionally setting display name
+  async createAccountWithEmail(email, password, displayName) {
     try {
       const result = await auth.createUserWithEmailAndPassword(email, password);
+      if (displayName) {
+        await result.user.updateProfile({ displayName });
+      }
       return { user: result.user, error: null };
     } catch (error) {
       console.error('Account creation error:', error);
@@ -101,6 +106,43 @@ const Auth = {
       }
       callback(user, Auth.userData);
     });
+  },
+
+  // Update display name on Firebase Auth profile and Firestore user doc
+  async updateDisplayName(displayName) {
+    try {
+      await Auth.currentUser.updateProfile({ displayName });
+      await DB.updateUser(Auth.currentUser.uid, { display_name: displayName });
+      Auth.userData.display_name = displayName;
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('Display name update error:', error);
+      return { success: false, error: 'Failed to update display name. Please try again.' };
+    }
+  },
+
+  // Update email address. Requires re-authentication with current password.
+  async updateEmail(newEmail, currentPassword) {
+    try {
+      // Re-authenticate the user first
+      const credential = firebase.auth.EmailAuthProvider.credential(
+        Auth.currentUser.email, currentPassword
+      );
+      await Auth.currentUser.reauthenticateWithCredential(credential);
+
+      // Update email in Firebase Auth
+      await Auth.currentUser.updateEmail(newEmail);
+
+      // Update email in Firestore user doc
+      await DB.updateUser(Auth.currentUser.uid, { email: newEmail });
+      Auth.userData.email = newEmail;
+
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('Email update error:', error);
+      const msg = Auth.ERROR_MESSAGES[error.code] || 'Failed to update email. Please check your password and try again.';
+      return { success: false, error: msg };
+    }
   },
 
   // Check if current user is an admin
