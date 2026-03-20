@@ -29,14 +29,13 @@ service cloud.firestore {
     // ============================================================
     // Document ID = Firebase Auth UID.
     // Users can read/write their own document.
-    // Admins can read all user docs in their institution (team management).
+    // Members can read other users in their institution (for "created by" display).
     // Admins can update other users' roles within their institution.
     // Admins can delete users from their institution.
     match /users/{userId} {
       allow read: if isSignedIn() && (
         request.auth.uid == userId ||
         (userExists()
-          && getUserDoc().role == "admin"
           && getUserDoc().institution_id == resource.data.institution_id)
       );
 
