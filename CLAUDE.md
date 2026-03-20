@@ -28,6 +28,11 @@ js/
   form.js               — Entry form (right panel in editor)
   export.js             — CSV export
   app.js                — Main app: init, routing, view management, event wiring
+  smoke-test.js         — Browser console diagnostic (ASpaceTest.runAll())
+tests/
+  setup.js              — Test harness: loads vanilla JS into Node via vm
+  field-registry.test.js — Field registry integrity + ASpace vocab alignment
+  validation.test.js    — Validation logic unit tests
 ```
 
 **Script load order matters** — scripts in `index.html` load sequentially and depend on globals from earlier scripts. `app.js` must be last.
@@ -51,9 +56,32 @@ js/
 5. **Security rules**: Admin reads on users collection are scoped to same institution. Test cross-institution isolation.
 6. **No build step**: Changes are live immediately — just refresh the browser. No compilation, no hot reload needed.
 
-## Testing & Verification
+## Linting & Testing
 
-### Quick Smoke Test
+### Lint
+```bash
+npm run lint
+```
+Runs ESLint across all JS files. Config is in `.eslintrc.json` — tuned for this project's browser-global pattern (no modules, `const` objects as namespaces). **Zero errors expected; warnings are informational.**
+
+### Unit Tests
+```bash
+npm test
+```
+Runs Node.js built-in test runner (`node:test`) against `tests/*.test.js`. Tests cover:
+- Field registry integrity (required properties, no duplicate IDs, valid categories)
+- ASpace controlled vocabulary alignment (level, date_type, container_type, subject_source, etc.)
+- Field-level validation (patterns, max lengths, controlled vocabs)
+- Conditional validation (other_level, date group requirements, container/extent pairing)
+- Row-level validation (title-or-date, level required)
+- Date comparison helper
+
+### Lint + Test Together
+```bash
+npm run check
+```
+
+### Browser Smoke Test
 Open the browser console and run:
 ```js
 ASpaceTest.runAll()
