@@ -229,7 +229,8 @@ const Config = {
     passwordGroup.style.display = changed ? '' : 'none';
   },
 
-  // Save profile changes (display name and/or email). Returns true if all saves succeeded.
+  // Save profile changes (display name and/or email).
+  // Returns { ok, nameChanged, emailChanged } or { ok: false } on failure.
   async saveProfile() {
     const nameInput = document.getElementById('profile-display-name');
     const emailInput = document.getElementById('profile-email');
@@ -245,12 +246,13 @@ const Config = {
 
     // Save display name if changed
     const currentName = (Auth.userData && Auth.userData.display_name) || '';
-    if (newName !== currentName) {
+    const nameChanged = newName !== currentName;
+    if (nameChanged) {
       const result = await Auth.updateDisplayName(newName);
       if (!result.success) {
         errorEl.textContent = result.error;
         errorEl.classList.remove('hidden');
-        return false;
+        return { ok: false };
       }
     }
 
@@ -261,14 +263,14 @@ const Config = {
       if (!emailPattern.test(newEmail)) {
         errorEl.textContent = 'Please enter a valid email address.';
         errorEl.classList.remove('hidden');
-        return false;
+        return { ok: false };
       }
 
       // Confirm email match
       if (newEmail !== confirmInput.value.trim()) {
         errorEl.textContent = 'Email addresses don\'t match.';
         errorEl.classList.remove('hidden');
-        return false;
+        return { ok: false };
       }
 
       // Password required
@@ -276,18 +278,18 @@ const Config = {
       if (!password) {
         errorEl.textContent = 'Please enter your current password to change your email.';
         errorEl.classList.remove('hidden');
-        return false;
+        return { ok: false };
       }
 
       const result = await Auth.updateEmail(newEmail, password);
       if (!result.success) {
         errorEl.textContent = result.error;
         errorEl.classList.remove('hidden');
-        return false;
+        return { ok: false };
       }
     }
 
-    return true;
+    return { ok: true, nameChanged, emailChanged };
   },
 
   // Render My Defaults modal content
@@ -408,8 +410,8 @@ const Config = {
   // Save user defaults and profile changes
   async saveMyDefaults() {
     // Save profile first — if it fails, don't save defaults either
-    const profileOk = await Config.saveProfile();
-    if (!profileOk) return false;
+    const profile = await Config.saveProfile();
+    if (!profile.ok) return false;
 
     const userDefaults = Config.collectDefaults(
       document.getElementById('my-defaults-list'), 'user-default'
@@ -419,7 +421,16 @@ const Config = {
     if (success) {
       Auth.userData.defaults = userDefaults;
       App.updateUserDisplay();
-      App.showToast('Your defaults have been saved.', 'success');
+
+      // Build a specific success message
+      const parts = [];
+      if (profile.nameChanged) parts.push('display name');
+      if (profile.emailChanged) parts.push('email address');
+      if (parts.length > 0) {
+        App.showToast('Your ' + parts.join(' and ') + ' and defaults have been saved.', 'success');
+      } else {
+        App.showToast('Your defaults have been saved.', 'success');
+      }
     } else {
       App.showToast('Failed to save defaults.', 'error');
     }

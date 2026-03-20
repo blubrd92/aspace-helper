@@ -986,9 +986,11 @@ const App = {
     document.getElementById('btn-my-defaults-editor').addEventListener('click', openMyDefaults);
 
     document.getElementById('btn-save-my-defaults').addEventListener('click', async () => {
-      await Config.saveMyDefaults();
-      App.closeModal('modal-my-defaults');
-      if (App.currentProject) App.renderDefaultsBar();
+      const success = await Config.saveMyDefaults();
+      if (success) {
+        App.closeModal('modal-my-defaults');
+        if (App.currentProject) App.renderDefaultsBar();
+      }
     });
 
     document.getElementById('btn-cancel-my-defaults').addEventListener('click', () => {
