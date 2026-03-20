@@ -13,8 +13,8 @@
       <h1 class="app-title">ASpace Helper</h1>
       <p class="app-subtitle">Prepare data for ArchivesSpace bulk import — the easy way.</p>
 
-      <!-- Sign In Form (default state) -->
-      <div id="auth-signin" class="auth-form">
+      <!-- Sign In Form (hidden until auth state resolves) -->
+      <div id="auth-signin" class="auth-form hidden">
         <div class="auth-form-fields">
           <label for="signin-email">Email</label>
           <input type="email" id="signin-email" placeholder="you@library.org" autocomplete="email">
@@ -100,8 +100,8 @@
         </div>
       </div>
 
-      <!-- Loading state (shown during auth processing) -->
-      <div id="auth-loading" class="auth-form hidden">
+      <!-- Loading state (shown by default until auth resolves) -->
+      <div id="auth-loading" class="auth-form">
         <div class="auth-spinner"></div>
         <p class="auth-loading-text">Loading your workspace...</p>
       </div>
