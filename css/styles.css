@@ -276,6 +276,11 @@ html, body {
   margin-bottom: var(--spacing-lg);
 }
 
+.onboarding-signout {
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-sm);
+}
+
 .onboarding-options {
   display: flex;
   gap: var(--spacing-md);

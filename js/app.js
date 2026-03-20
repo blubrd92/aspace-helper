@@ -604,6 +604,8 @@ const App = {
     });
 
     // --- Onboarding ---
+    document.getElementById('btn-onboarding-signout').addEventListener('click', () => Auth.signOut());
+
     const btnCreateInst = document.getElementById('btn-create-institution');
     const btnJoinInst = document.getElementById('btn-join-institution');
     const onboardingCreate = document.getElementById('onboarding-create');
