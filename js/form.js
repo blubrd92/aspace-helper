@@ -146,7 +146,47 @@ const Form = {
       });
     }
 
-    wrapper.appendChild(input);
+    // Task 1: Date auto-formatter — when a 4-digit year is entered in
+    // Date Expression, auto-populate empty Begin and End fields
+    if (fieldDef.id === 'expression') {
+      input.addEventListener('blur', () => {
+        const val = input.value.trim();
+        if (/^\d{4}$/.test(val)) {
+          if (!entry.fields) entry.fields = {};
+          if (!entry.fields.begin) {
+            entry.fields.begin = val;
+            const beginInput = document.getElementById('field-begin');
+            if (beginInput) beginInput.value = val;
+          }
+          if (!entry.fields.end) {
+            entry.fields.end = val;
+            const endInput = document.getElementById('field-end');
+            if (endInput) endInput.value = val;
+          }
+        }
+      });
+    }
+
+    // Task 2: "Apply to Children" button for box number field
+    if (fieldDef.id === 'indicator_1') {
+      const inputRow = document.createElement('div');
+      inputRow.className = 'field-input-row';
+      inputRow.appendChild(input);
+
+      const applyBtn = document.createElement('button');
+      applyBtn.type = 'button';
+      applyBtn.className = 'btn btn-text btn-small';
+      applyBtn.textContent = 'Apply to Children';
+      applyBtn.title = 'Set this box number on all entries nested under this one';
+      applyBtn.addEventListener('click', () => {
+        Tree.applyToDescendants(Tree.selectedEntryId, 'indicator_1', input.value);
+      });
+      inputRow.appendChild(applyBtn);
+
+      wrapper.appendChild(inputRow);
+    } else {
+      wrapper.appendChild(input);
+    }
 
     // Error message container
     const errorEl = document.createElement('div');
@@ -160,7 +200,7 @@ const Form = {
   // Run inline validation on a single field and show/hide error
   validateFieldInline(fieldDef, input, entry) {
     const result = Validation.validateField(fieldDef, input.value, entry.fields || {});
-    const errorEl = input.parentElement.querySelector(`[data-error-for="${fieldDef.id}"]`);
+    const errorEl = input.closest('.form-field').querySelector(`[data-error-for="${fieldDef.id}"]`);
 
     if (!result.valid) {
       input.classList.add('field-error');

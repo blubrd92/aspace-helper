@@ -860,6 +860,27 @@ select {
   background: var(--color-error-bg);
 }
 
+.tree-item.has-warning:not(.has-error) {
+  background: var(--color-warning-bg, #fffbeb);
+}
+
+.tree-item-warning {
+  color: var(--color-warning, #b45309);
+  margin-right: 0.25rem;
+  font-size: 0.85rem;
+}
+
+/* Inline row for field input + action button */
+.field-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.field-input-row input {
+  flex: 1;
+}
+
 .tree-item-level {
   font-size: 0.7rem;
   font-weight: 600;

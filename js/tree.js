@@ -25,9 +25,13 @@ const Tree = {
     // Build tree structure from flat entries with parent_id
     const flatTree = Tree.flattenTree(entries);
 
+    // Task 3: Track previous hierarchy level to detect skips
+    let prevHierarchy = 0;
     for (const entry of flatTree) {
-      const item = Tree.createTreeItem(entry, entry._depth);
+      const hasHierarchyWarning = entry._hierarchy > prevHierarchy + 1;
+      const item = Tree.createTreeItem(entry, entry._depth, hasHierarchyWarning);
       container.appendChild(item);
+      prevHierarchy = entry._hierarchy;
     }
   },
 
@@ -74,7 +78,7 @@ const Tree = {
   },
 
   // Create a single tree item element
-  createTreeItem(entry, depth) {
+  createTreeItem(entry, depth, hasHierarchyWarning) {
     const item = document.createElement('div');
     item.className = 'tree-item';
     item.setAttribute('role', 'treeitem');
@@ -92,15 +96,23 @@ const Tree = {
       item.classList.add('has-error');
     }
 
+    // Task 3: Flag hierarchy level skips
+    if (hasHierarchyWarning) {
+      item.classList.add('has-warning');
+    }
+
     const level = (entry.fields && entry.fields.level) || '';
     const title = (entry.fields && entry.fields.title) || '';
     const levelClass = Tree.getLevelClass(level);
     const indicator = (entry.fields && entry.fields.indicator_1) || '';
     const childIndicator = (entry.fields && entry.fields.indicator_2) || '';
     const containerText = indicator ? `Box ${indicator}${childIndicator ? ', Folder ' + childIndicator : ''}` : '';
+    const warningIcon = hasHierarchyWarning
+      ? '<span class="tree-item-warning" title="Hierarchy level skip \u2014 this entry jumps more than one level from the previous entry">\u26A0</span>'
+      : '';
 
     item.innerHTML = `
-      <span class="tree-item-level ${levelClass}">${level || '?'}</span>
+      ${warningIcon}<span class="tree-item-level ${levelClass}">${level || '?'}</span>
       <span class="tree-item-title ${title ? '' : 'untitled'}">${title || 'Untitled'}</span>
       ${containerText ? `<span class="tree-item-container">${containerText}</span>` : ''}
       <span class="tree-item-actions">
@@ -340,6 +352,37 @@ const Tree = {
 
     App.markDirty();
     Tree.render(project.entries);
+  },
+
+  // Apply a field value to all descendants of an entry
+  applyToDescendants(entryId, fieldId, value) {
+    const project = App.currentProject;
+    if (!project || !entryId) return;
+
+    const entries = project.entries || [];
+    const descendants = [];
+
+    function findDescendants(id) {
+      entries.filter(e => e.parent_id === id).forEach(child => {
+        descendants.push(child);
+        findDescendants(child.id);
+      });
+    }
+    findDescendants(entryId);
+
+    if (descendants.length === 0) {
+      App.showToast('No child entries to update.', 'warning');
+      return;
+    }
+
+    for (const desc of descendants) {
+      if (!desc.fields) desc.fields = {};
+      desc.fields[fieldId] = value;
+    }
+
+    App.markDirty();
+    Tree.render(entries);
+    App.showToast(`Applied to ${descendants.length} child ${descendants.length === 1 ? 'entry' : 'entries'}.`, 'success');
   },
 
   // Generate a unique ID for a new entry
