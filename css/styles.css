@@ -581,18 +581,6 @@ select {
   margin: 4px 0;
 }
 
-/* ===== Banner ===== */
-.banner {
-  background: var(--color-success-bg);
-  border: 1px solid #c6f6d5;
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  margin: var(--spacing-md);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 /* ===== Project List ===== */
 .project-list-main {
   flex: 1;
@@ -1323,13 +1311,7 @@ select {
   letter-spacing: 0.1em;
 }
 
-.invite-code-hidden {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.invite-code-hidden .invite-code-dots {
+.invite-code-dots {
   font-family: var(--font-mono);
   font-size: 1.1rem;
   letter-spacing: 0.15em;
