@@ -106,6 +106,7 @@ const DB = {
     try {
       const docRef = await db.collection('institutions').add({
         name: data.name,
+        created_by: firebase.auth().currentUser.uid,
         created_at: firebase.firestore.FieldValue.serverTimestamp(),
         invite_code: data.invite_code,
         config: {
