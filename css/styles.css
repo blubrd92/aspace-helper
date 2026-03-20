@@ -50,8 +50,8 @@
 html, body {
   height: 100%;
   font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
@@ -116,7 +116,7 @@ html, body {
 
 .auth-error {
   color: var(--color-error);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   margin-bottom: var(--spacing-sm);
   padding: var(--spacing-sm);
   background: var(--color-error-bg);
@@ -125,7 +125,7 @@ html, body {
 
 .auth-message {
   color: var(--color-success);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   margin-bottom: var(--spacing-sm);
   padding: var(--spacing-sm);
   background: var(--color-success-bg);
@@ -154,7 +154,7 @@ html, body {
   align-items: center;
   margin: var(--spacing-lg) 0;
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 .auth-divider::before,
@@ -179,7 +179,7 @@ html, body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--color-text);
   cursor: pointer;
@@ -307,7 +307,7 @@ html, body {
   background: var(--color-surface);
   color: var(--color-text);
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -375,7 +375,7 @@ html, body {
 
 .btn-small {
   padding: 4px 10px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 .btn-large {
@@ -405,7 +405,7 @@ textarea {
   border-radius: var(--radius-md);
   background: var(--color-surface);
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   color: var(--color-text);
   transition: border-color 0.15s;
 }
@@ -476,7 +476,7 @@ select {
 }
 
 .institution-badge {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
   background: var(--color-bg);
   padding: 2px 8px;
@@ -484,7 +484,7 @@ select {
 }
 
 .resource-id-badge {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-family: var(--font-mono);
   color: var(--color-text-muted);
   background: var(--color-bg);
@@ -507,7 +507,7 @@ select {
 }
 
 .sync-indicator {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--color-success);
   padding: 2px 8px;
 }
@@ -558,7 +558,7 @@ select {
   border: none;
   background: none;
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   cursor: pointer;
   color: var(--color-text);
 }
@@ -621,7 +621,7 @@ select {
   padding: var(--spacing-sm) var(--spacing-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-family: var(--font-sans);
   background: var(--color-surface);
   color: var(--color-text);
@@ -647,7 +647,7 @@ select {
   border: none;
   background: var(--color-surface);
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s, color 0.15s;
@@ -670,7 +670,7 @@ select {
   text-align: center;
   padding: var(--spacing-xl);
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .project-list {
@@ -701,12 +701,12 @@ select {
 }
 
 .project-card-meta {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
 }
 
 .project-card-status {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   background: var(--color-bg);
@@ -733,7 +733,7 @@ select {
 }
 
 .defaults-bar-box {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
 }
 
@@ -750,7 +750,7 @@ select {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 .default-chip-label {
@@ -771,7 +771,7 @@ select {
 }
 
 .default-chip-source {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--color-text-light);
   font-style: italic;
 }
@@ -812,7 +812,7 @@ select {
 }
 
 .panel-header h3 {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -848,7 +848,7 @@ select {
   border-left: 3px solid transparent;
   transition: background 0.1s;
   gap: var(--spacing-xs);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   user-select: none;
 }
 
@@ -872,7 +872,7 @@ select {
 .tree-item-warning {
   color: var(--color-warning, #b45309);
   margin-right: 0.25rem;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 
 /* Inline row for field input + action button */
@@ -887,7 +887,7 @@ select {
 }
 
 .tree-item-level {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   padding: 1px 6px;
@@ -915,7 +915,7 @@ select {
 }
 
 .tree-item-container {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
   font-family: var(--font-mono);
   flex-shrink: 0;
@@ -935,7 +935,7 @@ select {
   border: none;
   cursor: pointer;
   padding: 2px 4px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
   border-radius: var(--radius-sm);
 }
@@ -978,7 +978,7 @@ select {
 }
 
 .form-section-header h4 {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -986,7 +986,7 @@ select {
 }
 
 .form-section-toggle {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
   transition: transform 0.2s;
 }
@@ -1024,20 +1024,20 @@ select {
 }
 
 .field-help {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
   margin-top: 2px;
   margin-bottom: 4px;
 }
 
 .field-error-message {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--color-error);
   margin-top: 4px;
 }
 
 .field-warning-message {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--color-warning);
   margin-top: 4px;
 }
@@ -1098,7 +1098,7 @@ select {
 .modal-description {
   color: var(--color-text-muted);
   margin-bottom: var(--spacing-md);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
 }
 
 .btn-close {
@@ -1135,7 +1135,7 @@ select {
   border: none;
   background: none;
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   cursor: pointer;
   color: var(--color-text-muted);
   border-bottom: 2px solid transparent;
@@ -1170,7 +1170,7 @@ select {
 }
 
 .fields-config-category h5 {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   text-transform: uppercase;
   color: var(--color-text-muted);
   margin-bottom: var(--spacing-xs);
@@ -1197,12 +1197,12 @@ select {
 
 .field-config-code {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--color-text-light);
 }
 
 .field-required-badge {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--color-text-light, #6b7280);
   font-style: italic;
   white-space: nowrap;
@@ -1284,7 +1284,7 @@ select {
 }
 
 .default-row-inst {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--color-text-light);
   width: 120px;
   text-align: right;
@@ -1296,7 +1296,7 @@ select {
 
 .default-row-value input,
 .default-row-value select {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   padding: 4px 8px;
 }
 
@@ -1323,6 +1323,19 @@ select {
   letter-spacing: 0.1em;
 }
 
+.invite-code-hidden {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.invite-code-hidden .invite-code-dots {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  color: var(--color-text-muted);
+}
+
 .team-list {
   max-height: 300px;
   overflow-y: auto;
@@ -1345,7 +1358,7 @@ select {
 }
 
 .team-member-info span {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
 }
 
@@ -1356,7 +1369,7 @@ select {
 }
 
 .sole-admin-note {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--color-warning);
   white-space: nowrap;
 }
@@ -1406,7 +1419,7 @@ select {
   align-items: flex-start;
   gap: var(--spacing-sm);
   padding: 4px 0;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
@@ -1444,7 +1457,7 @@ select {
   border-radius: var(--radius-md);
   background: var(--color-text);
   color: white;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   box-shadow: var(--shadow-md);
   animation: toast-in 0.2s ease-out;
   max-width: 360px;
@@ -1490,7 +1503,7 @@ select {
 
 .error-text {
   color: var(--color-error);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
 }
 
 .admin-only {

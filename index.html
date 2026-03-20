@@ -159,7 +159,7 @@
           </button>
           <div id="user-dropdown" class="dropdown hidden">
             <button id="btn-my-defaults" class="dropdown-item">My Defaults</button>
-            <button id="btn-settings" class="dropdown-item admin-only">Settings</button>
+            <button id="btn-settings" class="dropdown-item admin-only">Admin Settings</button>
             <hr>
             <button id="btn-leave-institution" class="dropdown-item dropdown-item-danger">Leave Institution</button>
             <button id="btn-signout" class="dropdown-item">Sign Out</button>
@@ -170,8 +170,12 @@
 
     <main class="project-list-main">
       <div id="invite-code-banner" class="banner hidden">
-        <p>Share this code with your team so they can join: <strong id="invite-code-display"></strong></p>
-        <button id="btn-copy-invite" class="btn btn-small">Copy</button>
+        <p>Share your invite code with team members so they can join.</p>
+        <span class="invite-code-hidden">
+          <span id="invite-code-display" class="invite-code-dots" data-revealed="false">••••••••</span>
+          <button id="btn-reveal-invite" class="btn btn-small">Show</button>
+          <button id="btn-copy-invite" class="btn btn-small">Copy</button>
+        </span>
       </div>
 
       <div class="project-list-header">
@@ -236,7 +240,7 @@
           </button>
           <div id="user-dropdown-editor" class="dropdown hidden">
             <button id="btn-my-defaults-editor" class="dropdown-item">My Defaults</button>
-            <button id="btn-settings-editor" class="dropdown-item admin-only">Settings</button>
+            <button id="btn-settings-editor" class="dropdown-item admin-only">Admin Settings</button>
             <hr>
             <button id="btn-back-to-projects" class="dropdown-item">Switch Project</button>
             <button id="btn-leave-institution-editor" class="dropdown-item dropdown-item-danger">Leave Institution</button>
@@ -345,7 +349,7 @@
   <div id="modal-settings" class="modal hidden" role="dialog" aria-labelledby="modal-settings-title">
     <div class="modal-content modal-xlarge">
       <div class="modal-header">
-        <h3 id="modal-settings-title">Settings</h3>
+        <h3 id="modal-settings-title">Admin Settings</h3>
         <button class="btn-close" aria-label="Close">&times;</button>
       </div>
       <div class="settings-tabs">
@@ -375,7 +379,8 @@
             <h4>Invite Code</h4>
             <p>Share this code with new team members:</p>
             <div class="invite-code-row">
-              <strong id="settings-invite-code"></strong>
+              <span id="settings-invite-code" class="invite-code-dots" data-revealed="false">••••••••</span>
+              <button id="btn-reveal-invite-settings" class="btn btn-small">Show</button>
               <button id="btn-copy-invite-settings" class="btn btn-small">Copy</button>
               <button id="btn-regenerate-code" class="btn btn-small btn-danger">Regenerate</button>
             </div>

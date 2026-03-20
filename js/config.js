@@ -411,10 +411,14 @@ const Config = {
       });
     });
 
-    // Show invite code
+    // Set invite code (hidden by default)
     const codeEl = document.getElementById('settings-invite-code');
     if (codeEl && Config.institutionData) {
-      codeEl.textContent = Config.institutionData.invite_code;
+      codeEl.dataset.code = Config.institutionData.invite_code;
+      codeEl.dataset.revealed = 'false';
+      codeEl.textContent = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+      const revealBtn = document.getElementById('btn-reveal-invite-settings');
+      if (revealBtn) revealBtn.textContent = 'Show';
     }
   },
 

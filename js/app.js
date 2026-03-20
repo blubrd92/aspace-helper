@@ -101,7 +101,10 @@ const App = {
       const banner = document.getElementById('invite-code-banner');
       const codeDisplay = document.getElementById('invite-code-display');
       if (banner && codeDisplay) {
-        codeDisplay.textContent = Config.institutionData.invite_code;
+        codeDisplay.dataset.code = Config.institutionData.invite_code;
+        codeDisplay.dataset.revealed = 'false';
+        codeDisplay.textContent = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+        document.getElementById('btn-reveal-invite').textContent = 'Show';
         banner.classList.remove('hidden');
       }
     }
@@ -786,9 +789,23 @@ const App = {
       }
     });
 
-    // --- Copy invite code ---
+    // --- Reveal / copy invite code (banner) ---
+    document.getElementById('btn-reveal-invite').addEventListener('click', () => {
+      const el = document.getElementById('invite-code-display');
+      const btn = document.getElementById('btn-reveal-invite');
+      if (el.dataset.revealed === 'true') {
+        el.textContent = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+        el.dataset.revealed = 'false';
+        btn.textContent = 'Show';
+      } else {
+        el.textContent = el.dataset.code;
+        el.dataset.revealed = 'true';
+        btn.textContent = 'Hide';
+      }
+    });
+
     document.getElementById('btn-copy-invite').addEventListener('click', () => {
-      const code = document.getElementById('invite-code-display').textContent;
+      const code = document.getElementById('invite-code-display').dataset.code;
       navigator.clipboard.writeText(code).then(() => {
         App.showToast('Invite code copied!', 'success');
       });
@@ -1076,17 +1093,42 @@ const App = {
           );
           if (newCode) {
             Config.institutionData.invite_code = newCode;
-            document.getElementById('settings-invite-code').textContent = newCode;
-            document.getElementById('invite-code-display').textContent = newCode;
+            // Update both displays — reset to hidden state
+            const settingsEl = document.getElementById('settings-invite-code');
+            settingsEl.dataset.code = newCode;
+            settingsEl.dataset.revealed = 'false';
+            settingsEl.textContent = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+            document.getElementById('btn-reveal-invite-settings').textContent = 'Show';
+
+            const bannerEl = document.getElementById('invite-code-display');
+            bannerEl.dataset.code = newCode;
+            bannerEl.dataset.revealed = 'false';
+            bannerEl.textContent = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+            document.getElementById('btn-reveal-invite').textContent = 'Show';
+
             App.showToast('Invite code regenerated.', 'success');
           }
         }
       );
     });
 
-    // Settings: copy invite code
+    // Settings: reveal / copy invite code
+    document.getElementById('btn-reveal-invite-settings').addEventListener('click', () => {
+      const el = document.getElementById('settings-invite-code');
+      const btn = document.getElementById('btn-reveal-invite-settings');
+      if (el.dataset.revealed === 'true') {
+        el.textContent = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+        el.dataset.revealed = 'false';
+        btn.textContent = 'Show';
+      } else {
+        el.textContent = el.dataset.code;
+        el.dataset.revealed = 'true';
+        btn.textContent = 'Hide';
+      }
+    });
+
     document.getElementById('btn-copy-invite-settings').addEventListener('click', () => {
-      const code = document.getElementById('settings-invite-code').textContent;
+      const code = document.getElementById('settings-invite-code').dataset.code;
       navigator.clipboard.writeText(code).then(() => {
         App.showToast('Invite code copied!', 'success');
       });
