@@ -145,6 +145,28 @@ const Auth = {
     }
   },
 
+  // Update password. Requires re-authentication with current password.
+  async updatePassword(currentPassword, newPassword) {
+    try {
+      const credential = firebase.auth.EmailAuthProvider.credential(
+        Auth.currentUser.email, currentPassword
+      );
+      await Auth.currentUser.reauthenticateWithCredential(credential);
+      await Auth.currentUser.updatePassword(newPassword);
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('Password update error:', error);
+      const msg = Auth.ERROR_MESSAGES[error.code] || 'Failed to update password. Please check your current password and try again.';
+      return { success: false, error: msg };
+    }
+  },
+
+  // Check if current user signed in via Google (no email/password management)
+  isGoogleUser() {
+    return Auth.currentUser &&
+      Auth.currentUser.providerData.some(p => p.providerId === 'google.com');
+  },
+
   // Check if current user is an admin
   isAdmin() {
     return Auth.userData && Auth.userData.role === 'admin';

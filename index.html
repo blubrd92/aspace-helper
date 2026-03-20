@@ -328,26 +328,65 @@
         <button class="btn-close" aria-label="Close">&times;</button>
       </div>
       <div class="profile-section">
-        <div class="profile-fields">
-          <div class="profile-field">
-            <label for="profile-display-name">Display Name</label>
-            <input type="text" id="profile-display-name" placeholder="Your name" maxlength="100" autocomplete="name">
+        <!-- Display Name (always editable) -->
+        <div class="profile-field">
+          <label for="profile-display-name">Display Name</label>
+          <input type="text" id="profile-display-name" placeholder="Your name" maxlength="100" autocomplete="name">
+        </div>
+
+        <!-- Email: shown as read-only text with a Change button -->
+        <div class="profile-field">
+          <label>Email Address</label>
+          <div class="profile-readonly-row">
+            <span id="profile-email-display" class="profile-readonly-value"></span>
+            <button id="btn-change-email" class="btn btn-text btn-small">Change</button>
           </div>
+          <p id="profile-google-hint" class="profile-field-hint hidden">Your email is managed by your Google account.</p>
+        </div>
+
+        <!-- Change Email fields (hidden until Change is clicked) -->
+        <div id="profile-email-fields" class="profile-expandable hidden">
           <div class="profile-field">
-            <label for="profile-email">Email Address</label>
+            <label for="profile-email">New Email</label>
             <input type="email" id="profile-email" placeholder="you@library.org" autocomplete="email">
           </div>
-          <div class="profile-field" id="profile-email-confirm-group" style="display:none;">
+          <div class="profile-field">
             <label for="profile-email-confirm">Confirm New Email</label>
             <input type="email" id="profile-email-confirm" placeholder="Re-enter new email" autocomplete="off">
-            <p class="profile-field-hint">Changing your email requires your current password.</p>
           </div>
-          <div class="profile-field" id="profile-password-group" style="display:none;">
+          <div class="profile-field">
+            <label for="profile-email-password">Current Password</label>
+            <input type="password" id="profile-email-password" placeholder="Required to change email" autocomplete="current-password">
+          </div>
+        </div>
+
+        <!-- Password: Change button reveals fields -->
+        <div class="profile-field" id="profile-password-section">
+          <label>Password</label>
+          <div class="profile-readonly-row">
+            <span class="profile-readonly-value">••••••••</span>
+            <button id="btn-change-password" class="btn btn-text btn-small">Change</button>
+          </div>
+          <p id="profile-password-google-hint" class="profile-field-hint hidden">Your password is managed by your Google account.</p>
+        </div>
+
+        <!-- Change Password fields (hidden until Change is clicked) -->
+        <div id="profile-password-fields" class="profile-expandable hidden">
+          <div class="profile-field">
             <label for="profile-current-password">Current Password</label>
             <input type="password" id="profile-current-password" placeholder="Enter current password" autocomplete="current-password">
           </div>
-          <p id="profile-error" class="auth-error hidden"></p>
+          <div class="profile-field">
+            <label for="profile-new-password">New Password</label>
+            <input type="password" id="profile-new-password" placeholder="At least 6 characters" autocomplete="new-password">
+          </div>
+          <div class="profile-field">
+            <label for="profile-confirm-password">Confirm New Password</label>
+            <input type="password" id="profile-confirm-password" placeholder="Re-enter new password" autocomplete="new-password">
+          </div>
         </div>
+
+        <p id="profile-error" class="auth-error hidden"></p>
       </div>
       <hr class="profile-divider">
       <div class="profile-leave-section">

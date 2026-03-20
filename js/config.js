@@ -180,71 +180,65 @@ const Config = {
     }
   },
 
-  // Populate the profile section of My Defaults modal
+  // Populate the My Profile modal
   renderProfile() {
     const nameInput = document.getElementById('profile-display-name');
-    const emailInput = document.getElementById('profile-email');
-    const confirmGroup = document.getElementById('profile-email-confirm-group');
-    const passwordGroup = document.getElementById('profile-password-group');
+    const emailDisplay = document.getElementById('profile-email-display');
     const errorEl = document.getElementById('profile-error');
 
-    if (!nameInput || !emailInput) return;
+    if (!nameInput || !emailDisplay) return;
 
-    // Populate current values
-    const displayName = (Auth.userData && Auth.userData.display_name) || '';
-    nameInput.value = displayName;
-    emailInput.value = Auth.currentUser ? Auth.currentUser.email : '';
-    emailInput._originalEmail = emailInput.value;
+    // Display name
+    nameInput.value = (Auth.userData && Auth.userData.display_name) || '';
 
-    // Reset confirm/password fields
-    confirmGroup.style.display = 'none';
-    passwordGroup.style.display = 'none';
+    // Email display
+    emailDisplay.textContent = Auth.currentUser ? Auth.currentUser.email : '';
+
+    // Reset all expandable sections
+    document.getElementById('profile-email-fields').classList.add('hidden');
+    document.getElementById('profile-password-fields').classList.add('hidden');
+    document.getElementById('profile-email').value = '';
     document.getElementById('profile-email-confirm').value = '';
+    document.getElementById('profile-email-password').value = '';
     document.getElementById('profile-current-password').value = '';
+    document.getElementById('profile-new-password').value = '';
+    document.getElementById('profile-confirm-password').value = '';
     errorEl.classList.add('hidden');
 
-    // Google-signed-in users can't change email via password re-auth
-    const isGoogleUser = Auth.currentUser &&
-      Auth.currentUser.providerData.some(p => p.providerId === 'google.com');
-    if (isGoogleUser) {
-      emailInput.readOnly = true;
-      emailInput.title = 'Email is managed by your Google account';
-      emailInput.style.opacity = '0.6';
-    } else {
-      emailInput.readOnly = false;
-      emailInput.title = '';
-      emailInput.style.opacity = '';
-      // Show confirm + password fields when email changes (remove old listener to prevent stacking)
-      emailInput.removeEventListener('input', Config._onProfileEmailChange);
-      emailInput.addEventListener('input', Config._onProfileEmailChange);
-    }
+    // Google users: show hints, hide change buttons
+    const isGoogle = Auth.isGoogleUser();
+    document.getElementById('btn-change-email').classList.toggle('hidden', isGoogle);
+    document.getElementById('profile-google-hint').classList.toggle('hidden', !isGoogle);
+    document.getElementById('btn-change-password').classList.toggle('hidden', isGoogle);
+    document.getElementById('profile-password-google-hint').classList.toggle('hidden', !isGoogle);
   },
 
-  _onProfileEmailChange() {
-    const emailInput = document.getElementById('profile-email');
-    const confirmGroup = document.getElementById('profile-email-confirm-group');
-    const passwordGroup = document.getElementById('profile-password-group');
-    const changed = emailInput.value.trim() !== emailInput._originalEmail;
-    confirmGroup.style.display = changed ? '' : 'none';
-    passwordGroup.style.display = changed ? '' : 'none';
+  // Wire up Change Email / Change Password toggle buttons (call once in bindEvents)
+  bindProfileToggles() {
+    document.getElementById('btn-change-email').addEventListener('click', () => {
+      const fields = document.getElementById('profile-email-fields');
+      fields.classList.toggle('hidden');
+      if (!fields.classList.contains('hidden')) {
+        document.getElementById('profile-email').focus();
+      }
+    });
+    document.getElementById('btn-change-password').addEventListener('click', () => {
+      const fields = document.getElementById('profile-password-fields');
+      fields.classList.toggle('hidden');
+      if (!fields.classList.contains('hidden')) {
+        document.getElementById('profile-current-password').focus();
+      }
+    });
   },
 
-  // Save profile changes (display name and/or email).
-  // Returns { ok, nameChanged, emailChanged } or { ok: false } on failure.
+  // Save profile changes (display name, email, password).
+  // Returns { ok, nameChanged, emailChanged, passwordChanged } or { ok: false } on failure.
   async saveProfile() {
-    const nameInput = document.getElementById('profile-display-name');
-    const emailInput = document.getElementById('profile-email');
-    const confirmInput = document.getElementById('profile-email-confirm');
-    const passwordInput = document.getElementById('profile-current-password');
     const errorEl = document.getElementById('profile-error');
-
     errorEl.classList.add('hidden');
 
-    const newName = nameInput.value.trim();
-    const newEmail = emailInput.value.trim();
-    const emailChanged = newEmail !== emailInput._originalEmail;
-
-    // Save display name if changed
+    // --- Display name ---
+    const newName = document.getElementById('profile-display-name').value.trim();
     const currentName = (Auth.userData && Auth.userData.display_name) || '';
     const nameChanged = newName !== currentName;
     if (nameChanged) {
@@ -256,9 +250,20 @@ const Config = {
       }
     }
 
-    // Save email if changed
-    if (emailChanged) {
-      // Format validation
+    // --- Email change (only if section is open) ---
+    const emailFieldsOpen = !document.getElementById('profile-email-fields').classList.contains('hidden');
+    let emailChanged = false;
+    if (emailFieldsOpen) {
+      const newEmail = document.getElementById('profile-email').value.trim();
+      const confirmEmail = document.getElementById('profile-email-confirm').value.trim();
+      const emailPassword = document.getElementById('profile-email-password').value;
+
+      if (!newEmail) {
+        errorEl.textContent = 'Please enter your new email address.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(newEmail)) {
         errorEl.textContent = 'Please enter a valid email address.';
@@ -266,30 +271,63 @@ const Config = {
         return { ok: false };
       }
 
-      // Confirm email match
-      if (newEmail !== confirmInput.value.trim()) {
+      if (newEmail !== confirmEmail) {
         errorEl.textContent = 'Email addresses don\'t match.';
         errorEl.classList.remove('hidden');
         return { ok: false };
       }
 
-      // Password required
-      const password = passwordInput.value;
-      if (!password) {
+      if (!emailPassword) {
         errorEl.textContent = 'Please enter your current password to change your email.';
         errorEl.classList.remove('hidden');
         return { ok: false };
       }
 
-      const result = await Auth.updateEmail(newEmail, password);
+      const result = await Auth.updateEmail(newEmail, emailPassword);
       if (!result.success) {
         errorEl.textContent = result.error;
         errorEl.classList.remove('hidden');
         return { ok: false };
       }
+      emailChanged = true;
     }
 
-    return { ok: true, nameChanged, emailChanged };
+    // --- Password change (only if section is open) ---
+    const passwordFieldsOpen = !document.getElementById('profile-password-fields').classList.contains('hidden');
+    let passwordChanged = false;
+    if (passwordFieldsOpen) {
+      const currentPw = document.getElementById('profile-current-password').value;
+      const newPw = document.getElementById('profile-new-password').value;
+      const confirmPw = document.getElementById('profile-confirm-password').value;
+
+      if (!currentPw || !newPw || !confirmPw) {
+        errorEl.textContent = 'Please fill in all password fields.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      if (newPw.length < 6) {
+        errorEl.textContent = 'New password must be at least 6 characters.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      if (newPw !== confirmPw) {
+        errorEl.textContent = 'New passwords don\'t match.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      const result = await Auth.updatePassword(currentPw, newPw);
+      if (!result.success) {
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+      passwordChanged = true;
+    }
+
+    return { ok: true, nameChanged, emailChanged, passwordChanged };
   },
 
   // Render My Defaults modal content

@@ -977,6 +977,8 @@ const App = {
     });
 
     // --- My Profile modal ---
+    Config.bindProfileToggles();
+
     const openMyProfile = () => {
       Config.renderProfile();
       document.getElementById('modal-my-profile').classList.remove('hidden');
@@ -987,11 +989,12 @@ const App = {
     document.getElementById('btn-save-my-profile').addEventListener('click', async () => {
       const profile = await Config.saveProfile();
       if (profile.ok) {
-        if (profile.nameChanged || profile.emailChanged) {
-          const parts = [];
-          if (profile.nameChanged) parts.push('display name');
-          if (profile.emailChanged) parts.push('email address');
-          App.showToast('Your ' + parts.join(' and ') + ' has been updated.', 'success');
+        const parts = [];
+        if (profile.nameChanged) parts.push('display name');
+        if (profile.emailChanged) parts.push('email');
+        if (profile.passwordChanged) parts.push('password');
+        if (parts.length > 0) {
+          App.showToast('Your ' + parts.join(' and ') + ' updated.', 'success');
         }
         App.updateUserDisplay();
         App.closeModal('modal-my-profile');
