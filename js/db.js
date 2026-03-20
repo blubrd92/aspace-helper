@@ -195,23 +195,25 @@ const DB = {
   // Regenerate invite code: delete old, create new, update institution
   async regenerateInviteCode(institutionId, oldCode, institutionName) {
     const newCode = DB.generateInviteCode(institutionName);
-    const batch = db.batch();
-
-    // Delete old code
-    batch.delete(db.collection('invite_codes').doc(oldCode.toUpperCase()));
-
-    // Create new code
-    batch.set(db.collection('invite_codes').doc(newCode.toUpperCase()), {
-      institution_id: institutionId,
-      institution_name: institutionName
-    });
-
-    // Update institution
-    batch.update(db.collection('institutions').doc(institutionId), {
-      invite_code: newCode
-    });
 
     try {
+      // Delete old code if it still exists (skip if already removed)
+      if (oldCode) {
+        const oldDoc = await db.collection('invite_codes').doc(oldCode.toUpperCase()).get();
+        if (oldDoc.exists) {
+          await db.collection('invite_codes').doc(oldCode.toUpperCase()).delete();
+        }
+      }
+
+      // Create new code and update institution in a batch
+      const batch = db.batch();
+      batch.set(db.collection('invite_codes').doc(newCode.toUpperCase()), {
+        institution_id: institutionId,
+        institution_name: institutionName
+      });
+      batch.update(db.collection('institutions').doc(institutionId), {
+        invite_code: newCode
+      });
       await batch.commit();
       return newCode;
     } catch (error) {
