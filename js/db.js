@@ -171,20 +171,6 @@ const DB = {
     }
   },
 
-  async updateInviteCodeInstitution(code, institutionId, institutionName) {
-    try {
-      const data = { institution_id: institutionId };
-      if (institutionName) {
-        data.institution_name = institutionName;
-      }
-      await db.collection('invite_codes').doc(code.toUpperCase()).update(data);
-      return true;
-    } catch (error) {
-      DB._showError('Failed to update invite code.', error);
-      return false;
-    }
-  },
-
   async lookupInviteCode(code) {
     try {
       const doc = await db.collection('invite_codes').doc(code.toUpperCase()).get();

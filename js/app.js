@@ -640,15 +640,25 @@ const App = {
         return;
       }
 
-      // Generate invite code
-      let inviteCode = DB.generateInviteCode(name);
-      let codeCreated = await DB.createInviteCode(inviteCode, 'pending');
+      // Create institution first so we have a real ID for the invite code
+      const inviteCode = DB.generateInviteCode(name);
+      const institutionId = await DB.createInstitution({ name, invite_code: inviteCode });
+      if (!institutionId) {
+        App.showToast('Failed to create institution.', 'error');
+        return;
+      }
+
+      // Create invite code with all data in one shot (update rules are denied)
+      let codeCreated = await DB.createInviteCode(inviteCode, institutionId, name);
 
       // Retry on collision (extremely unlikely)
       let attempts = 0;
       while (!codeCreated && attempts < 5) {
-        inviteCode = DB.generateInviteCode(name);
-        codeCreated = await DB.createInviteCode(inviteCode, 'pending');
+        const retryCode = DB.generateInviteCode(name);
+        codeCreated = await DB.createInviteCode(retryCode, institutionId, name);
+        if (codeCreated) {
+          await DB.updateInstitution(institutionId, { invite_code: retryCode });
+        }
         attempts++;
       }
 
@@ -656,16 +666,6 @@ const App = {
         App.showToast('Failed to create invite code. Please try again.', 'error');
         return;
       }
-
-      // Create institution
-      const institutionId = await DB.createInstitution({ name, invite_code: inviteCode });
-      if (!institutionId) {
-        App.showToast('Failed to create institution.', 'error');
-        return;
-      }
-
-      // Update invite code with real institution ID and name
-      await DB.updateInviteCodeInstitution(inviteCode, institutionId, name);
 
       // Create user document
       const user = Auth.currentUser;
@@ -701,13 +701,7 @@ const App = {
         return;
       }
 
-      // Show institution name — prefer invite code data, fall back to institution doc
-      let instName = codeData.institution_name;
-      if (!instName && codeData.institution_id) {
-        const inst = await DB.getInstitution(codeData.institution_id);
-        instName = inst && inst.name;
-      }
-      instName = instName || 'Unknown Institution';
+      const instName = codeData.institution_name || 'Unknown Institution';
 
       document.getElementById('join-error').classList.add('hidden');
       document.getElementById('join-institution-name').textContent = instName;
