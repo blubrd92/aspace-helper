@@ -701,8 +701,13 @@ const App = {
         return;
       }
 
-      // Show institution name from invite code data (no need to read the institution doc)
-      const instName = codeData.institution_name || 'Unknown Institution';
+      // Show institution name — prefer invite code data, fall back to institution doc
+      let instName = codeData.institution_name;
+      if (!instName && codeData.institution_id) {
+        const inst = await DB.getInstitution(codeData.institution_id);
+        instName = inst && inst.name;
+      }
+      instName = instName || 'Unknown Institution';
 
       document.getElementById('join-error').classList.add('hidden');
       document.getElementById('join-institution-name').textContent = instName;
