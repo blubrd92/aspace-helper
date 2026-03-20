@@ -1176,9 +1176,10 @@ select {
 }
 
 .field-required-badge {
-  font-size: 0.7rem;
-  color: var(--color-warning, #b45309);
+  font-size: 0.75rem;
+  color: var(--color-text-light, #6b7280);
   font-style: italic;
+  white-space: nowrap;
 }
 
 /* Toggle switch */

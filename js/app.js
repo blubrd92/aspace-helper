@@ -5,6 +5,7 @@ const App = {
   currentProject: null,
   isDirty: false,
   saveTimer: null,
+  _projectUnsubscribe: null,  // onSnapshot listener teardown
   _projectCache: [],         // cached project list for client-side filtering
   _memberNameCache: {},      // uid -> display_name lookup
   _projectFilter: 'all',    // 'all' or 'mine'
@@ -225,6 +226,9 @@ const App = {
     App.currentProject = project;
     App.isDirty = false;
 
+    // Watch for concurrent edits from other users
+    App._watchProject(projectId);
+
     // Update UI
     document.getElementById('editor-project-name').textContent = project.name;
     const ridBadge = document.getElementById('editor-resource-id');
@@ -322,28 +326,6 @@ const App = {
   async autoSave() {
     if (!App.isDirty || !App.currentProject) return;
 
-    // Check for concurrent edits before saving
-    const serverProject = await DB.getProject(App.currentProject.id);
-    if (serverProject && serverProject.updated_at && App.currentProject.updated_at) {
-      const serverTime = serverProject.updated_at.toMillis ? serverProject.updated_at.toMillis() : 0;
-      const localTime = App.currentProject.updated_at.toMillis ? App.currentProject.updated_at.toMillis() : 0;
-      const serverUpdatedBy = serverProject.updated_by || null;
-      const currentUid = Auth.currentUser ? Auth.currentUser.uid : null;
-
-      if (serverTime > localTime && serverUpdatedBy !== currentUid) {
-        const overwrite = confirm(
-          'This project was modified by another user since you opened it. ' +
-          'Save anyway and overwrite their changes, or cancel to reload?'
-        );
-        if (!overwrite) {
-          // Reload the project from server
-          App.isDirty = false;
-          App.openProject(App.currentProject.id);
-          return;
-        }
-      }
-    }
-
     const success = await DB.updateProject(App.currentProject.id, {
       entries: App.currentProject.entries,
       defaults: App.currentProject.defaults,
@@ -354,11 +336,42 @@ const App = {
 
     if (success) {
       App.isDirty = false;
-      // Update local timestamp to match server
-      App.currentProject.updated_at = { toMillis: () => Date.now() };
       App.updateSyncStatus('saved');
     } else {
       App.updateSyncStatus('error');
+    }
+  },
+
+  // Listen for remote changes to the current project via Firestore onSnapshot.
+  // Shows a warning toast if another user modifies the project while it's open.
+  _watchProject(projectId) {
+    App._unwatchProject();
+    const currentUid = Auth.currentUser ? Auth.currentUser.uid : null;
+    let firstSnapshot = true;
+
+    App._projectUnsubscribe = db.collection('projects').doc(projectId)
+      .onSnapshot((doc) => {
+        // Skip the initial snapshot (it's just the current state)
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          return;
+        }
+        if (!doc.exists || !App.currentProject) return;
+
+        const data = doc.data();
+        if (data.updated_by && data.updated_by !== currentUid) {
+          App.showToast(
+            'Another team member just edited this project. Reload to see their changes.',
+            'warning'
+          );
+        }
+      });
+  },
+
+  _unwatchProject() {
+    if (App._projectUnsubscribe) {
+      App._projectUnsubscribe();
+      App._projectUnsubscribe = null;
     }
   },
 
@@ -841,8 +854,8 @@ const App = {
         }
       }
 
-      // Reassign or delete orphaned projects before removing the user
-      await DB.reassignOrDeleteProjects(institutionId, uid);
+      // Reassign the leaving user's projects to another member
+      await DB.reassignProjects(institutionId, uid);
 
       // Remove user document (removes institution membership)
       await DB.deleteUser(uid);
@@ -912,12 +925,14 @@ const App = {
       if (App.isDirty) {
         App.autoSave(); // save before leaving
       }
+      App._unwatchProject();
       App.currentProject = null;
       App.loadAndShowProjects();
     });
 
     document.getElementById('btn-back-to-projects').addEventListener('click', () => {
       if (App.isDirty) App.autoSave();
+      App._unwatchProject();
       App.currentProject = null;
       App.loadAndShowProjects();
     });

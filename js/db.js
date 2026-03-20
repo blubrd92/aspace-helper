@@ -301,9 +301,8 @@ const DB = {
     }
   },
 
-  async reassignOrDeleteProjects(institutionId, userId) {
+  async reassignProjects(institutionId, userId) {
     try {
-      // Find all projects created by this user in their institution
       const snapshot = await db.collection('projects')
         .where('institution_id', '==', institutionId)
         .where('created_by', '==', userId)
@@ -311,26 +310,22 @@ const DB = {
 
       if (snapshot.empty) return true;
 
-      // Try to find another admin to reassign to
-      const admins = await db.collection('users')
+      // The leave flow blocks the last admin from leaving, so there's
+      // always at least one other member remaining to reassign to.
+      const members = await db.collection('users')
         .where('institution_id', '==', institutionId)
-        .where('role', '==', 'admin')
         .get();
-
-      const otherAdmin = admins.docs.find(doc => doc.id !== userId);
+      const newOwner = members.docs.find(doc => doc.id !== userId);
+      if (!newOwner) return true; // no one left, projects stay as-is
 
       const batch = db.batch();
       for (const doc of snapshot.docs) {
-        if (otherAdmin) {
-          batch.update(doc.ref, { created_by: otherAdmin.id });
-        } else {
-          batch.delete(doc.ref);
-        }
+        batch.update(doc.ref, { created_by: newOwner.id });
       }
       await batch.commit();
       return true;
     } catch (error) {
-      DB._showError('Failed to handle orphaned projects.', error);
+      DB._showError('Failed to reassign projects.', error);
       return false;
     }
   },

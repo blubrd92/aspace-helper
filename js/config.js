@@ -120,20 +120,33 @@ const Config = {
         label.innerHTML = `
           <span>${field.label}</span>
           <span class="field-config-code">${field.aspace_code}</span>
-          ${field.required ? '<span class="field-required-badge">Required by ASpace</span>' : ''}
-        `;
-
-        const toggle = document.createElement('label');
-        toggle.className = 'toggle';
-        toggle.innerHTML = `
-          <input type="checkbox" data-field-id="${field.id}"
-                 ${enabledFields.includes(field.id) || field.required ? 'checked' : ''}
-                 ${field.required ? 'disabled' : ''}>
-          <span class="toggle-slider"></span>
         `;
 
         row.appendChild(label);
-        row.appendChild(toggle);
+
+        if (field.required) {
+          // No toggle for required fields — show a text label instead
+          const badge = document.createElement('span');
+          badge.className = 'field-required-badge';
+          badge.textContent = 'Required';
+          // Hidden checkbox so saveSettings() still picks it up
+          const hidden = document.createElement('input');
+          hidden.type = 'checkbox';
+          hidden.checked = true;
+          hidden.setAttribute('data-field-id', field.id);
+          hidden.style.display = 'none';
+          row.appendChild(badge);
+          row.appendChild(hidden);
+        } else {
+          const toggle = document.createElement('label');
+          toggle.className = 'toggle';
+          toggle.innerHTML = `
+            <input type="checkbox" data-field-id="${field.id}"
+                   ${enabledFields.includes(field.id) ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          `;
+          row.appendChild(toggle);
+        }
         section.appendChild(row);
       }
 
