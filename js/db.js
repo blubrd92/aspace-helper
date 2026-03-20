@@ -303,12 +303,13 @@ const DB = {
 
   async reassignProjects(institutionId, userId) {
     try {
+      // Single .where() + client-side filter to avoid needing a composite index
       const snapshot = await db.collection('projects')
         .where('institution_id', '==', institutionId)
-        .where('created_by', '==', userId)
         .get();
 
-      if (snapshot.empty) return true;
+      const userProjects = snapshot.docs.filter(doc => doc.data().created_by === userId);
+      if (userProjects.length === 0) return true;
 
       // The leave flow blocks the last admin from leaving, so there's
       // always at least one other member remaining to reassign to.
@@ -319,7 +320,7 @@ const DB = {
       if (!newOwner) return true; // no one left, projects stay as-is
 
       const batch = db.batch();
-      for (const doc of snapshot.docs) {
+      for (const doc of userProjects) {
         batch.update(doc.ref, { created_by: newOwner.id });
       }
       await batch.commit();

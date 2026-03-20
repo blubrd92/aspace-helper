@@ -375,14 +375,33 @@ const Tree = {
       return;
     }
 
-    for (const desc of descendants) {
-      if (!desc.fields) desc.fields = {};
-      desc.fields[fieldId] = value;
-    }
+    const apply = () => {
+      for (const desc of descendants) {
+        if (!desc.fields) desc.fields = {};
+        desc.fields[fieldId] = value;
+      }
 
-    App.markDirty();
-    Tree.render(entries);
-    App.showToast(`Applied to ${descendants.length} child ${descendants.length === 1 ? 'entry' : 'entries'}.`, 'success');
+      App.markDirty();
+      Tree.render(entries);
+
+      // Refresh the form if the selected entry was among the updated descendants
+      if (Tree.selectedEntryId) {
+        const selected = descendants.find(d => d.id === Tree.selectedEntryId);
+        if (selected) Form.renderEntry(selected);
+      }
+
+      App.showToast(`Applied to ${descendants.length} child ${descendants.length === 1 ? 'entry' : 'entries'}.`, 'success');
+    };
+
+    if (descendants.length > 5) {
+      App.showConfirm(
+        'Apply to Children',
+        `This will set "${fieldId}" to "${value}" on ${descendants.length} entries. Continue?`,
+        apply
+      );
+    } else {
+      apply();
+    }
   },
 
   // Generate a unique ID for a new entry

@@ -156,12 +156,20 @@ const Form = {
           if (!entry.fields.begin) {
             entry.fields.begin = val;
             const beginInput = document.getElementById('field-begin');
-            if (beginInput) beginInput.value = val;
+            if (beginInput) {
+              beginInput.value = val;
+              const beginDef = getFieldById('begin');
+              if (beginDef) Form.validateFieldInline(beginDef, beginInput, entry);
+            }
           }
           if (!entry.fields.end) {
             entry.fields.end = val;
             const endInput = document.getElementById('field-end');
-            if (endInput) endInput.value = val;
+            if (endInput) {
+              endInput.value = val;
+              const endDef = getFieldById('end');
+              if (endDef) Form.validateFieldInline(endDef, endInput, entry);
+            }
           }
         }
       });

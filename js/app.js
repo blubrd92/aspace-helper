@@ -365,6 +365,8 @@ const App = {
             'warning'
           );
         }
+      }, (error) => {
+        console.warn('Project watch listener failed:', error);
       });
   },
 
