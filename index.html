@@ -160,10 +160,10 @@
             <span id="user-name-display"></span>
           </button>
           <div id="user-dropdown" class="dropdown hidden">
+            <button id="btn-my-profile" class="dropdown-item">My Profile</button>
             <button id="btn-my-defaults" class="dropdown-item">My Defaults</button>
             <button id="btn-settings" class="dropdown-item admin-only">Admin Settings</button>
             <hr>
-            <button id="btn-leave-institution" class="dropdown-item dropdown-item-danger">Leave Institution</button>
             <button id="btn-signout" class="dropdown-item">Sign Out</button>
           </div>
         </div>
@@ -232,11 +232,11 @@
             <span id="user-avatar-editor" class="avatar"></span>
           </button>
           <div id="user-dropdown-editor" class="dropdown hidden">
+            <button id="btn-my-profile-editor" class="dropdown-item">My Profile</button>
             <button id="btn-my-defaults-editor" class="dropdown-item">My Defaults</button>
             <button id="btn-settings-editor" class="dropdown-item admin-only">Admin Settings</button>
             <hr>
             <button id="btn-back-to-projects" class="dropdown-item">Switch Project</button>
-            <button id="btn-leave-institution-editor" class="dropdown-item dropdown-item-danger">Leave Institution</button>
             <button id="btn-signout-editor" class="dropdown-item">Sign Out</button>
           </div>
         </div>
@@ -320,16 +320,14 @@
     </div>
   </div>
 
-  <!-- My Defaults Modal -->
-  <div id="modal-my-defaults" class="modal hidden" role="dialog" aria-labelledby="modal-my-defaults-title">
-    <div class="modal-content modal-large">
+  <!-- My Profile Modal -->
+  <div id="modal-my-profile" class="modal hidden" role="dialog" aria-labelledby="modal-my-profile-title">
+    <div class="modal-content">
       <div class="modal-header">
-        <h3 id="modal-my-defaults-title">My Defaults</h3>
+        <h3 id="modal-my-profile-title">My Profile</h3>
         <button class="btn-close" aria-label="Close">&times;</button>
       </div>
-      <!-- Profile Section -->
-      <div id="my-defaults-profile" class="profile-section">
-        <h4 class="profile-section-title">Profile</h4>
+      <div class="profile-section">
         <div class="profile-fields">
           <div class="profile-field">
             <label for="profile-display-name">Display Name</label>
@@ -352,6 +350,24 @@
         </div>
       </div>
       <hr class="profile-divider">
+      <div class="profile-leave-section">
+        <p class="profile-leave-description">Leave this institution and lose access to all its projects and data.</p>
+        <button id="btn-leave-from-profile" class="btn btn-danger-outline btn-small">Leave Institution</button>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-cancel-my-profile" class="btn btn-secondary">Cancel</button>
+        <button id="btn-save-my-profile" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Defaults Modal -->
+  <div id="modal-my-defaults" class="modal hidden" role="dialog" aria-labelledby="modal-my-defaults-title">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3 id="modal-my-defaults-title">My Defaults</h3>
+        <button class="btn-close" aria-label="Close">&times;</button>
+      </div>
       <p class="modal-description">These are your personal defaults. They apply to every project you work on. Your institution's defaults are shown in gray for reference. You can override any of them.</p>
       <div id="my-defaults-list" class="defaults-list">
         <!-- Populated dynamically -->

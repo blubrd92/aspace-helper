@@ -294,8 +294,6 @@ const Config = {
 
   // Render My Defaults modal content
   renderMyDefaults() {
-    Config.renderProfile();
-
     const container = document.getElementById('my-defaults-list');
     if (!container) return;
 
@@ -407,12 +405,8 @@ const Config = {
     return success;
   },
 
-  // Save user defaults and profile changes
+  // Save user defaults
   async saveMyDefaults() {
-    // Save profile first — if it fails, don't save defaults either
-    const profile = await Config.saveProfile();
-    if (!profile.ok) return false;
-
     const userDefaults = Config.collectDefaults(
       document.getElementById('my-defaults-list'), 'user-default'
     );
@@ -420,17 +414,7 @@ const Config = {
     const success = await DB.updateUser(Auth.currentUser.uid, { defaults: userDefaults });
     if (success) {
       Auth.userData.defaults = userDefaults;
-      App.updateUserDisplay();
-
-      // Build a specific success message
-      const parts = [];
-      if (profile.nameChanged) parts.push('display name');
-      if (profile.emailChanged) parts.push('email address');
-      if (parts.length > 0) {
-        App.showToast('Your ' + parts.join(' and ') + ' and defaults have been saved.', 'success');
-      } else {
-        App.showToast('Your defaults have been saved.', 'success');
-      }
+      App.showToast('Your defaults have been saved.', 'success');
     } else {
       App.showToast('Failed to save defaults.', 'error');
     }

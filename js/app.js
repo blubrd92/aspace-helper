@@ -812,8 +812,7 @@ const App = {
       leaveModal.classList.remove('hidden');
     };
 
-    document.getElementById('btn-leave-institution').addEventListener('click', openLeaveModal);
-    document.getElementById('btn-leave-institution-editor').addEventListener('click', openLeaveModal);
+    // Leave institution is now triggered from My Profile modal (btn-leave-from-profile)
 
     // Enable confirm button only when user types LEAVE
     leaveInput.addEventListener('input', () => {
@@ -975,6 +974,38 @@ const App = {
       const btn = document.getElementById('btn-toggle-defaults');
       content.classList.toggle('hidden');
       btn.textContent = content.classList.contains('hidden') ? 'Show Defaults' : 'Hide Defaults';
+    });
+
+    // --- My Profile modal ---
+    const openMyProfile = () => {
+      Config.renderProfile();
+      document.getElementById('modal-my-profile').classList.remove('hidden');
+    };
+    document.getElementById('btn-my-profile').addEventListener('click', openMyProfile);
+    document.getElementById('btn-my-profile-editor').addEventListener('click', openMyProfile);
+
+    document.getElementById('btn-save-my-profile').addEventListener('click', async () => {
+      const profile = await Config.saveProfile();
+      if (profile.ok) {
+        if (profile.nameChanged || profile.emailChanged) {
+          const parts = [];
+          if (profile.nameChanged) parts.push('display name');
+          if (profile.emailChanged) parts.push('email address');
+          App.showToast('Your ' + parts.join(' and ') + ' has been updated.', 'success');
+        }
+        App.updateUserDisplay();
+        App.closeModal('modal-my-profile');
+      }
+    });
+
+    document.getElementById('btn-cancel-my-profile').addEventListener('click', () => {
+      App.closeModal('modal-my-profile');
+    });
+
+    // Leave institution button inside My Profile opens the leave confirmation modal
+    document.getElementById('btn-leave-from-profile').addEventListener('click', () => {
+      App.closeModal('modal-my-profile');
+      openLeaveModal();
     });
 
     // --- My Defaults modal ---

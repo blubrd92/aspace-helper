@@ -354,6 +354,15 @@ html, body {
 .btn-danger:hover {
   background: #e53e3e;
 }
+.btn-danger-outline {
+  background: transparent;
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+}
+.btn-danger-outline:hover {
+  background: var(--color-danger);
+  color: white;
+}
 
 .btn-text {
   background: none;
@@ -1296,6 +1305,19 @@ select {
   border: none;
   border-top: 1px solid var(--color-border);
   margin: 16px 0;
+}
+
+.profile-leave-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.profile-leave-description {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  margin: 0;
 }
 
 #profile-error {
