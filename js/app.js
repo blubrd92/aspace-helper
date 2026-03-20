@@ -322,6 +322,28 @@ const App = {
   async autoSave() {
     if (!App.isDirty || !App.currentProject) return;
 
+    // Check for concurrent edits before saving
+    const serverProject = await DB.getProject(App.currentProject.id);
+    if (serverProject && serverProject.updated_at && App.currentProject.updated_at) {
+      const serverTime = serverProject.updated_at.toMillis ? serverProject.updated_at.toMillis() : 0;
+      const localTime = App.currentProject.updated_at.toMillis ? App.currentProject.updated_at.toMillis() : 0;
+      const serverUpdatedBy = serverProject.updated_by || null;
+      const currentUid = Auth.currentUser ? Auth.currentUser.uid : null;
+
+      if (serverTime > localTime && serverUpdatedBy !== currentUid) {
+        const overwrite = confirm(
+          'This project was modified by another user since you opened it. ' +
+          'Save anyway and overwrite their changes, or cancel to reload?'
+        );
+        if (!overwrite) {
+          // Reload the project from server
+          App.isDirty = false;
+          App.openProject(App.currentProject.id);
+          return;
+        }
+      }
+    }
+
     const success = await DB.updateProject(App.currentProject.id, {
       entries: App.currentProject.entries,
       defaults: App.currentProject.defaults,
@@ -332,6 +354,8 @@ const App = {
 
     if (success) {
       App.isDirty = false;
+      // Update local timestamp to match server
+      App.currentProject.updated_at = { toMillis: () => Date.now() };
       App.updateSyncStatus('saved');
     } else {
       App.updateSyncStatus('error');
@@ -623,10 +647,8 @@ const App = {
         return;
       }
 
-      // Update invite code with real institution ID
-      await db.collection('invite_codes').doc(inviteCode.toUpperCase()).update({
-        institution_id: institutionId
-      });
+      // Update invite code with real institution ID and name
+      await DB.updateInviteCodeInstitution(inviteCode, institutionId, name);
 
       // Create user document
       const user = Auth.currentUser;
@@ -662,18 +684,13 @@ const App = {
         return;
       }
 
-      // Show institution name for confirmation
-      const inst = await DB.getInstitution(codeData.institution_id);
-      if (!inst) {
-        document.getElementById('join-error').textContent = 'Institution not found.';
-        document.getElementById('join-error').classList.remove('hidden');
-        return;
-      }
+      // Show institution name from invite code data (no need to read the institution doc)
+      const instName = codeData.institution_name || 'Unknown Institution';
 
       document.getElementById('join-error').classList.add('hidden');
-      document.getElementById('join-institution-name').textContent = inst.name;
+      document.getElementById('join-institution-name').textContent = instName;
       document.getElementById('join-confirm').classList.remove('hidden');
-      document.getElementById('join-confirm').setAttribute('data-institution-id', inst.id);
+      document.getElementById('join-confirm').setAttribute('data-institution-id', codeData.institution_id);
     });
 
     // Join institution: confirm
@@ -823,6 +840,9 @@ const App = {
           return;
         }
       }
+
+      // Reassign or delete orphaned projects before removing the user
+      await DB.reassignOrDeleteProjects(institutionId, uid);
 
       // Remove user document (removes institution membership)
       await DB.deleteUser(uid);

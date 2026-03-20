@@ -1175,6 +1175,12 @@ select {
   color: var(--color-text-light);
 }
 
+.field-required-badge {
+  font-size: 0.7rem;
+  color: var(--color-warning, #b45309);
+  font-style: italic;
+}
+
 /* Toggle switch */
 .toggle {
   position: relative;

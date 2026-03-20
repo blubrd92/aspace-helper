@@ -120,14 +120,15 @@ const Config = {
         label.innerHTML = `
           <span>${field.label}</span>
           <span class="field-config-code">${field.aspace_code}</span>
+          ${field.required ? '<span class="field-required-badge">Required by ASpace</span>' : ''}
         `;
 
         const toggle = document.createElement('label');
         toggle.className = 'toggle';
         toggle.innerHTML = `
           <input type="checkbox" data-field-id="${field.id}"
-                 ${enabledFields.includes(field.id) ? 'checked' : ''}
-                 ${field.required ? 'checked disabled' : ''}>
+                 ${enabledFields.includes(field.id) || field.required ? 'checked' : ''}
+                 ${field.required ? 'disabled' : ''}>
           <span class="toggle-slider"></span>
         `;
 
@@ -245,6 +246,13 @@ const Config = {
         enabledFields.push(cb.getAttribute('data-field-id'));
       }
     });
+
+    // Ensure required fields are always included (safeguard against bypass)
+    for (const field of FIELD_REGISTRY) {
+      if (field.required && !enabledFields.includes(field.id)) {
+        enabledFields.push(field.id);
+      }
+    }
 
     const instDefaults = Config.collectDefaults(
       document.getElementById('inst-defaults-list'), 'inst-default'

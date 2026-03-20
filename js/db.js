@@ -157,14 +157,30 @@ const DB = {
     return `${prefix}-${suffix}`;
   },
 
-  async createInviteCode(code, institutionId) {
+  async createInviteCode(code, institutionId, institutionName) {
     try {
-      await db.collection('invite_codes').doc(code.toUpperCase()).set({
-        institution_id: institutionId
-      });
+      const data = { institution_id: institutionId };
+      if (institutionName) {
+        data.institution_name = institutionName;
+      }
+      await db.collection('invite_codes').doc(code.toUpperCase()).set(data);
       return true;
     } catch (error) {
       DB._showError('Failed to create invite code.', error);
+      return false;
+    }
+  },
+
+  async updateInviteCodeInstitution(code, institutionId, institutionName) {
+    try {
+      const data = { institution_id: institutionId };
+      if (institutionName) {
+        data.institution_name = institutionName;
+      }
+      await db.collection('invite_codes').doc(code.toUpperCase()).update(data);
+      return true;
+    } catch (error) {
+      DB._showError('Failed to update invite code.', error);
       return false;
     }
   },
@@ -200,7 +216,8 @@ const DB = {
 
     // Create new code
     batch.set(db.collection('invite_codes').doc(newCode.toUpperCase()), {
-      institution_id: institutionId
+      institution_id: institutionId,
+      institution_name: institutionName
     });
 
     // Update institution
@@ -280,6 +297,40 @@ const DB = {
       return true;
     } catch (error) {
       DB._showError('Failed to save project.', error);
+      return false;
+    }
+  },
+
+  async reassignOrDeleteProjects(institutionId, userId) {
+    try {
+      // Find all projects created by this user in their institution
+      const snapshot = await db.collection('projects')
+        .where('institution_id', '==', institutionId)
+        .where('created_by', '==', userId)
+        .get();
+
+      if (snapshot.empty) return true;
+
+      // Try to find another admin to reassign to
+      const admins = await db.collection('users')
+        .where('institution_id', '==', institutionId)
+        .where('role', '==', 'admin')
+        .get();
+
+      const otherAdmin = admins.docs.find(doc => doc.id !== userId);
+
+      const batch = db.batch();
+      for (const doc of snapshot.docs) {
+        if (otherAdmin) {
+          batch.update(doc.ref, { created_by: otherAdmin.id });
+        } else {
+          batch.delete(doc.ref);
+        }
+      }
+      await batch.commit();
+      return true;
+    } catch (error) {
+      DB._showError('Failed to handle orphaned projects.', error);
       return false;
     }
   },
