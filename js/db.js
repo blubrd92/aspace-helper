@@ -160,11 +160,17 @@ const DB = {
 
   async createInviteCode(code, institutionId, institutionName) {
     try {
+      const docRef = db.collection('invite_codes').doc(code.toUpperCase());
+      const existing = await docRef.get();
+      if (existing.exists) {
+        // Collision — caller should retry with a different code
+        return false;
+      }
       const data = { institution_id: institutionId };
       if (institutionName) {
         data.institution_name = institutionName;
       }
-      await db.collection('invite_codes').doc(code.toUpperCase()).set(data);
+      await docRef.set(data);
       return true;
     } catch (error) {
       DB._showError('Failed to create invite code.', error);
@@ -209,9 +215,22 @@ const DB = {
 
   // Regenerate invite code: delete old, create new, update institution
   async regenerateInviteCode(institutionId, oldCode, institutionName) {
-    const newCode = DB.generateInviteCode(institutionName);
-
     try {
+      // Generate a code that doesn't already exist
+      let newCode = null;
+      for (let i = 0; i < 5; i++) {
+        const candidate = DB.generateInviteCode(institutionName);
+        const existing = await db.collection('invite_codes').doc(candidate.toUpperCase()).get();
+        if (!existing.exists) {
+          newCode = candidate;
+          break;
+        }
+      }
+      if (!newCode) {
+        DB._showError('Failed to generate a unique invite code. Please try again.');
+        return null;
+      }
+
       // Delete old code if it still exists (skip if already removed)
       if (oldCode) {
         const oldDoc = await db.collection('invite_codes').doc(oldCode.toUpperCase()).get();
