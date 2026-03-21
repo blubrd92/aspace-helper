@@ -193,6 +193,20 @@ const DB = {
     }
   },
 
+  // Update the institution_name on an existing invite code doc
+  async updateInviteCodeName(code, newName) {
+    try {
+      await db.collection('invite_codes').doc(code.toUpperCase()).update({
+        institution_name: newName
+      });
+      return true;
+    } catch (error) {
+      // Non-critical — log but don't block settings save
+      console.error('Failed to update invite code name:', error);
+      return false;
+    }
+  },
+
   // Regenerate invite code: delete old, create new, update institution
   async regenerateInviteCode(institutionId, oldCode, institutionName) {
     const newCode = DB.generateInviteCode(institutionName);

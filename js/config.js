@@ -433,6 +433,11 @@ const Config = {
     });
 
     if (success) {
+      // If institution name changed, update the invite code doc so join preview shows new name
+      const resolvedName = instName || Config.institutionData.name;
+      if (resolvedName !== Config.institutionData.name && Config.institutionData.invite_code) {
+        await DB.updateInviteCodeName(Config.institutionData.invite_code, resolvedName);
+      }
       // Refresh cached config
       await Config.loadInstitution(institutionId);
       App.showToast('Settings saved.', 'success');
@@ -561,14 +566,10 @@ const Config = {
       });
     });
 
-    // Set invite code (hidden by default)
+    // Set invite code (visible — only admins see the Team tab)
     const codeEl = document.getElementById('settings-invite-code');
     if (codeEl && Config.institutionData) {
-      codeEl.dataset.code = Config.institutionData.invite_code;
-      codeEl.dataset.revealed = 'false';
-      codeEl.textContent = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
-      const revealBtn = document.getElementById('btn-reveal-invite-settings');
-      if (revealBtn) revealBtn.textContent = 'Show';
+      codeEl.textContent = Config.institutionData.invite_code;
     }
   },
 
