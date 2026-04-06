@@ -1,5 +1,7 @@
 # ASpace Helper — Claude Code Project Guide
 
+**Keep this file up to date.** When adding features, changing architecture, adding files, or modifying conventions, update the relevant sections below. This file is the primary reference for Claude Code sessions working on this project.
+
 ## What This Is
 
 A browser-based tool for library archivists to prepare ArchivesSpace bulk import data. It's a single-page app using vanilla JS + Firebase (Auth, Firestore). No build step — open `index.html` or serve it statically.
@@ -33,6 +35,8 @@ tests/
   setup.js              — Test harness: loads vanilla JS into Node via vm
   field-registry.test.js — Field registry integrity + ASpace vocab alignment
   validation.test.js    — Validation logic unit tests
+  export.test.js        — CSV escaping, date stamps, sanitization
+  tree.test.js          — Tree flattening, hierarchy calculation, HTML escaping
 ```
 
 **Script load order matters** — scripts in `index.html` load sequentially and depend on globals from earlier scripts. `app.js` must be last.
@@ -47,6 +51,12 @@ tests/
 - **Defaults cascade**: institution defaults → user defaults → project defaults (most specific wins)
 - **Last-admin protection**: `DB.isLastAdmin()` prevents demoting/removing the sole admin
 
+## Security
+
+- **XSS prevention**: Every module that uses `innerHTML` has an `_escapeHTML()` method. ALL user-controlled data (project names, entry titles, user display names, emails, field values, validation messages) MUST be escaped before insertion into innerHTML. When in doubt, use `textContent` instead.
+- **DB return checks**: Always check return values from `DB.*` methods before proceeding. Failed operations return `null`/`false`/`[]`.
+- **Firestore rules**: Security rules in `firestore.rules` enforce institution isolation and role-based access. Client-side guards (like last-admin check) are defense-in-depth, not the sole enforcement.
+
 ## Common Gotchas
 
 1. **Firestore composite indexes**: Never combine `.where()` + `.orderBy()` — requires an index that may not exist. Sort client-side instead.
@@ -54,7 +64,10 @@ tests/
 3. **CSS selector specificity**: `.field-config-row > label` targets the text label; `.toggle` is also a `<label>` but shouldn't get `flex: 1`.
 4. **Firebase error swallowing**: All `catch` blocks return falsy values. Always check return values from DB methods and handle failures.
 5. **Security rules**: Admin reads on users collection are scoped to same institution. Test cross-institution isolation.
-6. **No build step**: Changes are live immediately — just refresh the browser. No compilation, no hot reload needed.
+6. **No build step**: Changes are live immediately -- just refresh the browser. No compilation, no hot reload needed.
+7. **innerHTML XSS**: Never interpolate user-controlled data into `innerHTML` without calling `_escapeHTML()`. Each module (App, Tree, Export, Config) has its own copy of this method.
+8. **Concurrent editing**: The app uses last-write-wins. The `onSnapshot` listener warns users but does not prevent overwrites. Don't assume data hasn't changed between read and write.
+9. **Tree cycles**: `indentEntry()` has cycle detection. If you add new tree mutation operations, ensure they can't create circular parent-child references (which would cause infinite recursion in `flattenTree`).
 
 ## Linting & Testing
 
@@ -68,13 +81,18 @@ Runs ESLint across all JS files. Config is in `.eslintrc.json` — tuned for thi
 ```bash
 npm test
 ```
-Runs Node.js built-in test runner (`node:test`) against `tests/*.test.js`. Tests cover:
+Runs Node.js built-in test runner (`node:test`) against `tests/*.test.js`. **122 tests** covering:
 - Field registry integrity (required properties, no duplicate IDs, valid categories)
 - ASpace controlled vocabulary alignment (level, date_type, container_type, subject_source, etc.)
-- Field-level validation (patterns, max lengths, controlled vocabs)
+- Field-level validation (patterns, max lengths, controlled vocabs, Translation-form matching)
 - Conditional validation (other_level, date group requirements, container/extent pairing)
 - Row-level validation (title-or-date, level required)
+- Container summary parentheses warning
 - Date comparison helper
+- CSV escaping (commas, quotes, newlines, whitespace)
+- Export sanitization (smart quotes, em dashes, control characters)
+- Tree flattening and hierarchy calculation (depth, ordering, orphans)
+- HTML escaping utility
 
 ### Lint + Test Together
 ```bash
@@ -97,7 +115,12 @@ After making changes, verify:
 - [ ] **Settings** (admin): Toggle fields, change institution defaults, team management
 - [ ] **Last-admin guard**: Can't demote/remove sole admin, can't leave as sole admin
 - [ ] **Validation**: Required fields flagged, controlled vocabularies enforced
-- [ ] **Export**: CSV export with correct columns and data
+- [ ] **Export**: CSV export with correct columns and data (field code row, label row, data rows)
+- [ ] **Status workflow**: Change project status in editor, filter by status in project list
+- [ ] **Vocabulary restrictions** (admin): Customize dropdown values per field in settings
+- [ ] **Auto-increment**: Adding sibling entries auto-increments folder number
+- [ ] **Date parsing**: "1957-1965", "circa 1945", "undated" auto-populate date fields
+- [ ] **Escape key**: Pressing Escape closes the topmost modal
 
 ### What to Check After Firestore Rule Changes
 1. Can a member read their own user doc?
