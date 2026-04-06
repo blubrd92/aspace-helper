@@ -9,7 +9,16 @@ const App = {
   _projectCache: [],         // cached project list for client-side filtering
   _memberNameCache: {},      // uid -> display_name lookup
   _projectFilter: 'all',    // 'all' or 'mine'
+  _statusFilter: 'all',     // 'all' or a specific status value
   _projectSearch: '',        // current search query
+
+  // Human-readable labels for project statuses
+  STATUS_LABELS: {
+    'in_progress': 'In Progress',
+    'ready_for_review': 'Ready for Review',
+    'ready_for_export': 'Ready for Export',
+    'exported': 'Exported'
+  },
 
   // ===== INITIALIZATION =====
 
@@ -118,6 +127,7 @@ const App = {
 
     // Reset filter state
     App._projectFilter = 'all';
+    App._statusFilter = 'all';
     App._projectSearch = '';
     const searchInput = document.getElementById('input-project-search');
     if (searchInput) searchInput.value = '';
@@ -125,6 +135,8 @@ const App = {
     const mineBtn = document.getElementById('btn-filter-mine');
     if (allBtn) allBtn.classList.add('active');
     if (mineBtn) mineBtn.classList.remove('active');
+    const statusSelect = document.getElementById('select-status-filter');
+    if (statusSelect) statusSelect.value = 'all';
 
     App._renderFilteredProjects();
   },
@@ -151,6 +163,8 @@ const App = {
     const filtered = projects.filter(project => {
       // Filter by ownership
       if (App._projectFilter === 'mine' && project.created_by !== currentUid) return false;
+      // Filter by status
+      if (App._statusFilter !== 'all' && (project.status || 'in_progress') !== App._statusFilter) return false;
       // Filter by search text (match name or creator name)
       if (search) {
         const name = (project.name || '').toLowerCase();
@@ -176,13 +190,16 @@ const App = {
       const creatorName = App._memberNameCache[project.created_by] || '';
       const creatorSuffix = creatorName ? ` &middot; ${creatorName}` : '';
 
+      const status = project.status || 'in_progress';
+      const statusLabel = App.STATUS_LABELS[status] || status;
+
       card.innerHTML = `
         <div class="project-card-info">
           <h4>${project.name}</h4>
           <span class="project-card-meta">${entryCount} entries &middot; Updated ${updatedAt}${creatorSuffix}</span>
         </div>
         <div class="project-card-actions">
-          <span class="project-card-status">${project.status || 'in_progress'}</span>
+          <span class="project-card-status status-${status}">${statusLabel}</span>
           ${Auth.isAdmin() ? `<button class="btn btn-small btn-danger" data-delete-project="${project.id}">Delete</button>` : ''}
         </div>
       `;
@@ -231,6 +248,10 @@ const App = {
       ridBadge.textContent = '(click to set resource ID)';
       ridBadge.classList.add('unset');
     }
+
+    // Set status select to current project status
+    const statusSelect = document.getElementById('editor-status-select');
+    if (statusSelect) statusSelect.value = project.status || 'in_progress';
 
     // Reset form panel
     document.getElementById('no-selection').classList.remove('hidden');
@@ -741,6 +762,11 @@ const App = {
       App._renderFilteredProjects();
     });
 
+    document.getElementById('select-status-filter').addEventListener('change', (e) => {
+      App._statusFilter = e.target.value;
+      App._renderFilteredProjects();
+    });
+
     // --- Project List ---
     document.getElementById('btn-new-project').addEventListener('click', () => {
       document.getElementById('modal-new-project').classList.remove('hidden');
@@ -907,18 +933,37 @@ const App = {
       }
     });
 
+    // --- Editor: Status select ---
+    document.getElementById('editor-status-select').addEventListener('change', (e) => {
+      if (!App.currentProject) return;
+      App.currentProject.status = e.target.value;
+      App.markDirty();
+    });
+
     // --- Editor: Back to projects ---
-    document.getElementById('btn-back-projects').addEventListener('click', () => {
+    document.getElementById('btn-back-projects').addEventListener('click', async () => {
       if (App.isDirty) {
-        App.autoSave(); // save before leaving
+        try {
+          await App.autoSave();
+        } catch (e) {
+          console.error('Auto-save failed on navigation:', e);
+          App.showToast('Warning: your latest changes may not have been saved.', 'warning');
+        }
       }
       App._unwatchProject();
       App.currentProject = null;
       App.loadAndShowProjects();
     });
 
-    document.getElementById('btn-back-to-projects').addEventListener('click', () => {
-      if (App.isDirty) App.autoSave();
+    document.getElementById('btn-back-to-projects').addEventListener('click', async () => {
+      if (App.isDirty) {
+        try {
+          await App.autoSave();
+        } catch (e) {
+          console.error('Auto-save failed on navigation:', e);
+          App.showToast('Warning: your latest changes may not have been saved.', 'warning');
+        }
+      }
       App._unwatchProject();
       App.currentProject = null;
       App.loadAndShowProjects();

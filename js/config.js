@@ -125,7 +125,7 @@ const Config = {
         row.appendChild(label);
 
         if (field.required) {
-          // No toggle for required fields — show a text label instead
+          // No toggle for required fields -- show a text label instead
           const badge = document.createElement('span');
           badge.className = 'field-required-badge';
           badge.textContent = 'Required';
@@ -147,11 +147,67 @@ const Config = {
           `;
           row.appendChild(toggle);
         }
+
+        // For fields with controlled vocabularies, add a "Customize values" button
+        // that lets admins restrict which options appear in the data entry dropdown.
+        if (field.validation && field.validation.controlled_vocabulary) {
+          const vocabBtn = document.createElement('button');
+          vocabBtn.type = 'button';
+          vocabBtn.className = 'btn btn-text btn-small vocab-customize-btn';
+          vocabBtn.textContent = 'Customize values';
+          vocabBtn.addEventListener('click', () => {
+            Config._toggleVocabPanel(row, field);
+          });
+          row.appendChild(vocabBtn);
+        }
+
         section.appendChild(row);
       }
 
       container.appendChild(section);
     }
+  },
+
+  // Toggle the vocabulary customization panel for a field
+  _toggleVocabPanel(row, field) {
+    // If panel already exists, toggle it
+    const existing = row.querySelector('.vocab-panel');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+
+    const vocab = field.validation.controlled_vocabulary;
+    const restrictions = Config.institutionConfig &&
+      Config.institutionConfig.vocabulary_restrictions &&
+      Config.institutionConfig.vocabulary_restrictions[field.id];
+
+    const panel = document.createElement('div');
+    panel.className = 'vocab-panel';
+
+    const header = document.createElement('div');
+    header.className = 'vocab-panel-header';
+    header.innerHTML = `<span>Select which values to show in the dropdown:</span>`;
+    panel.appendChild(header);
+
+    const checkboxes = document.createElement('div');
+    checkboxes.className = 'vocab-panel-options';
+
+    for (const val of vocab) {
+      // If no restrictions exist, all values are checked (full vocabulary)
+      const isChecked = !restrictions || restrictions.includes(val);
+      const label = document.createElement('label');
+      label.className = 'vocab-option';
+      label.innerHTML = `
+        <input type="checkbox" data-vocab-field="${field.id}" data-vocab-value="${val}"
+               ${isChecked ? 'checked' : ''}>
+        <span>${val}</span>
+      `;
+      checkboxes.appendChild(label);
+    }
+
+    panel.appendChild(checkboxes);
+    row.appendChild(panel);
   },
 
   // Render institution defaults tab
@@ -421,6 +477,29 @@ const Config = {
       document.getElementById('inst-defaults-list'), 'inst-default'
     );
 
+    // Collect vocabulary restrictions from the customize panels.
+    // Only save a restriction for a field if the admin unchecked at least one value;
+    // if all values are checked, don't save a restriction (use full vocabulary).
+    const vocabRestrictions = {};
+    const vocabCheckboxes = document.querySelectorAll('#fields-config-list [data-vocab-field]');
+    const vocabByField = {};
+    vocabCheckboxes.forEach(cb => {
+      const fieldId = cb.getAttribute('data-vocab-field');
+      if (!vocabByField[fieldId]) vocabByField[fieldId] = [];
+      if (cb.checked) {
+        vocabByField[fieldId].push(cb.getAttribute('data-vocab-value'));
+      }
+    });
+
+    for (const [fieldId, checkedValues] of Object.entries(vocabByField)) {
+      const fieldDef = FIELD_REGISTRY.find(f => f.id === fieldId);
+      const fullVocab = fieldDef && fieldDef.validation && fieldDef.validation.controlled_vocabulary;
+      // Only save if the admin actually restricted (unchecked something)
+      if (fullVocab && checkedValues.length < fullVocab.length && checkedValues.length > 0) {
+        vocabRestrictions[fieldId] = checkedValues;
+      }
+    }
+
     const instName = document.getElementById('settings-inst-name').value.trim();
     const aspaceVersion = document.getElementById('settings-aspace-version').value;
 
@@ -429,7 +508,8 @@ const Config = {
       name: instName || Config.institutionData.name,
       defaults: instDefaults,
       'config.enabled_fields': enabledFields,
-      'config.aspace_version': aspaceVersion
+      'config.aspace_version': aspaceVersion,
+      'config.vocabulary_restrictions': vocabRestrictions
     });
 
     if (success) {

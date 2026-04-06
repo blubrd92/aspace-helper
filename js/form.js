@@ -99,11 +99,30 @@ const Form = {
     if (fieldDef.type === 'select' && fieldDef.validation && fieldDef.validation.controlled_vocabulary) {
       input = document.createElement('select');
       input.innerHTML = `<option value="">— Select —</option>`;
-      for (const opt of fieldDef.validation.controlled_vocabulary) {
+
+      // Use institution vocabulary restrictions if configured, otherwise full vocabulary.
+      // Restrictions are a UI filter only -- validation still accepts the full ASpace vocabulary.
+      const restrictions = Config.institutionConfig &&
+        Config.institutionConfig.vocabulary_restrictions &&
+        Config.institutionConfig.vocabulary_restrictions[fieldDef.id];
+      const options = restrictions || fieldDef.validation.controlled_vocabulary;
+
+      for (const opt of options) {
         const option = document.createElement('option');
         option.value = opt;
         option.textContent = opt;
         if (opt === value) option.selected = true;
+        input.appendChild(option);
+      }
+
+      // If the current value isn't in the restricted list but is in the full vocabulary,
+      // still show it so existing data isn't hidden
+      if (value && restrictions && !restrictions.includes(value) &&
+          fieldDef.validation.controlled_vocabulary.includes(value)) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        option.selected = true;
         input.appendChild(option);
       }
     } else if (fieldDef.type === 'multiline') {
@@ -146,31 +165,47 @@ const Form = {
       });
     }
 
-    // Task 1: Date auto-formatter — when a 4-digit year is entered in
-    // Date Expression, auto-populate empty Begin and End fields
+    // Date auto-formatter: auto-populate related date fields from common
+    // expression patterns. Only fills empty fields (never overwrites user values).
     if (fieldDef.id === 'expression') {
       input.addEventListener('blur', () => {
         const val = input.value.trim();
+        if (!entry.fields) entry.fields = {};
+
+        // Helper: set a field value only if currently empty, update the DOM input,
+        // and run inline validation on it.
+        const autoFill = (fieldId, value) => {
+          if (entry.fields[fieldId]) return; // don't overwrite existing values
+          entry.fields[fieldId] = value;
+          const el = document.getElementById('field-' + fieldId);
+          if (el) {
+            el.value = value;
+            const def = getFieldById(fieldId);
+            if (def) Form.validateFieldInline(def, el, entry);
+          }
+        };
+
+        // Single year: "1957"
         if (/^\d{4}$/.test(val)) {
-          if (!entry.fields) entry.fields = {};
-          if (!entry.fields.begin) {
-            entry.fields.begin = val;
-            const beginInput = document.getElementById('field-begin');
-            if (beginInput) {
-              beginInput.value = val;
-              const beginDef = getFieldById('begin');
-              if (beginDef) Form.validateFieldInline(beginDef, beginInput, entry);
-            }
-          }
-          if (!entry.fields.end) {
-            entry.fields.end = val;
-            const endInput = document.getElementById('field-end');
-            if (endInput) {
-              endInput.value = val;
-              const endDef = getFieldById('end');
-              if (endDef) Form.validateFieldInline(endDef, endInput, entry);
-            }
-          }
+          autoFill('begin', val);
+          autoFill('end', val);
+        }
+        // Year range: "1957-1965"
+        else if (/^\d{4}-\d{4}$/.test(val)) {
+          const [startYear, endYear] = val.split('-');
+          autoFill('begin', startYear);
+          autoFill('end', endYear);
+          autoFill('date_type', 'inclusive');
+        }
+        // Circa dates: "circa 1945" or "ca. 1945" (case-insensitive)
+        else if (/^(?:circa|ca\.?)\s+\d{4}$/i.test(val)) {
+          const year = val.match(/\d{4}/)[0];
+          autoFill('begin', year);
+          autoFill('date_certainty', 'approximate');
+        }
+        // "undated" (case-insensitive): no begin/end, just set date_type
+        else if (/^undated$/i.test(val)) {
+          autoFill('date_type', 'expression');
         }
       });
     }

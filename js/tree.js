@@ -81,7 +81,8 @@ const Tree = {
   createTreeItem(entry, depth, hasHierarchyWarning) {
     const item = document.createElement('div');
     item.className = 'tree-item';
-    item.setAttribute('role', 'treeitem');
+    item.setAttribute('role', 'listitem');
+    item.setAttribute('aria-level', depth + 1); // 1-based depth for screen readers
     item.setAttribute('data-entry-id', entry.id);
     item.style.setProperty('--tree-depth', depth);
 
@@ -210,7 +211,9 @@ const Tree = {
     }
   },
 
-  // Add a new entry (as child of parentId, or as root if parentId is null)
+  // Add a new entry (as child of parentId, or as root if parentId is null).
+  // afterIndex: when adding a sibling via "+S", the index of the clicked entry
+  //   in the entries array, so the new sibling is placed right after it.
   addEntry(parentId, asChild, afterIndex) {
     const project = App.currentProject;
     if (!project) return;
@@ -222,18 +225,65 @@ const Tree = {
     const userDefaults = (Auth.userData && Auth.userData.defaults) || {};
     const defaults = Config.getResolvedDefaults(projectDefaults, userDefaults);
 
-    // Determine the order: place after siblings of the same parent
-    const siblings = entries.filter(e => e.parent_id === (asChild ? parentId : parentId));
-    const newOrder = siblings.length > 0
-      ? Math.max(...siblings.map(s => s.order || 0)) + 1
-      : 0;
+    // Determine the effective parent for the new entry
+    const effectiveParent = asChild ? parentId : (parentId || null);
+
+    // Determine the order value for the new entry
+    let newOrder;
+    const siblings = entries
+      .filter(e => e.parent_id === effectiveParent)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (!asChild && afterIndex !== undefined && entries[afterIndex]) {
+      // "+S" button: insert right after the clicked entry among its siblings
+      const clickedEntry = entries[afterIndex];
+      const clickedOrder = clickedEntry.order || 0;
+
+      // Shift all siblings after the clicked entry to make room
+      for (const sib of siblings) {
+        if ((sib.order || 0) > clickedOrder) {
+          sib.order = (sib.order || 0) + 1;
+        }
+      }
+      newOrder = clickedOrder + 1;
+    } else {
+      newOrder = siblings.length > 0
+        ? Math.max(...siblings.map(s => s.order || 0)) + 1
+        : 0;
+    }
 
     const newEntry = {
       id: Tree.generateId(),
-      parent_id: asChild ? parentId : (parentId || null),
+      parent_id: effectiveParent,
       order: newOrder,
       fields: { ...defaults }
     };
+
+    // Auto-increment folder number from previous sibling.
+    // Only when adding as sibling (not child), and only if the previous
+    // sibling's folder number is a plain integer (not "1-3" or "A").
+    if (!asChild && effectiveParent !== undefined) {
+      // Find the sibling just before the new entry's position
+      const sortedSiblings = entries
+        .filter(e => e.parent_id === effectiveParent && e.id !== newEntry.id)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+      let prevSibling = null;
+      if (afterIndex !== undefined && entries[afterIndex]) {
+        // "+S": the clicked entry is the previous sibling
+        prevSibling = entries[afterIndex];
+      } else if (sortedSiblings.length > 0) {
+        // "Add Entry" at root: last existing sibling
+        prevSibling = sortedSiblings[sortedSiblings.length - 1];
+      }
+
+      if (prevSibling) {
+        const lastFolder = prevSibling.fields && prevSibling.fields.indicator_2;
+        if (lastFolder && /^\d+$/.test(lastFolder.trim())) {
+          newEntry.fields.indicator_2 = String(parseInt(lastFolder, 10) + 1);
+        }
+      }
+    }
 
     entries.push(newEntry);
     project.entries = entries;

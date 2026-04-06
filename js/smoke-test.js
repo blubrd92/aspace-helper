@@ -56,7 +56,7 @@ const ASpaceTest = {
     const buttons = [
       'btn-signin', 'btn-create-account', 'btn-google-signin', 'btn-google-signup',
       'btn-send-reset', 'btn-signout', 'btn-new-project', 'btn-add-entry',
-      'btn-validate-all', 'btn-export-csv', 'btn-leave-institution',
+      'btn-validate-all', 'btn-export-csv', 'btn-leave-from-profile',
       'btn-confirm-delete-project', 'btn-confirm-leave'
     ];
     for (const id of buttons) {
@@ -116,8 +116,8 @@ const ASpaceTest = {
       'Config': ['loadInstitution', 'renderFieldsConfig', 'renderTeam', 'saveSettings'],
       'Validation': ['validateField'],
       'Tree': ['addEntry', 'deleteEntry'],
-      'Form': ['renderForm', 'saveCurrentEntry'],
-      'Export': ['exportCSV']
+      'Form': ['renderEntry', 'saveCurrentEntry'],
+      'Export': ['downloadCSV']
     };
 
     for (const [name, methods] of Object.entries(modules)) {

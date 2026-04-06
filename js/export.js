@@ -4,7 +4,21 @@
 
 const Export = {
 
-  // Generate CSV string from project data
+  // Generate CSV string from project data.
+  //
+  // Output format follows ASpace's bulk importer expectations:
+  //   Row 1: Field code row, first cell = marker string so the importer can find it
+  //   Row 2: Human-readable labels (importer ignores this row)
+  //   Row 3+: Data rows (first cell empty -- it belongs to the marker column)
+  //
+  // The export uses the controlled vocabulary Value form (e.g. "cubic_feet"),
+  // not the Translation form (e.g. "Cubic Feet"). ASpace accepts both, but
+  // the Value form is safer because it's an exact match without depending on
+  // locale-specific translations.
+  //
+  // TODO (Phase 2 - Excel export): Date cells (begin, end, begin_2, end_2)
+  // MUST be formatted as Text, not Date. Excel auto-converts "1969-07-20" to
+  // an ISO datetime string if the cell format is Date, which breaks ASpace import.
   generateCSV(project) {
     const enabledFields = Config.getEnabledFields();
     const entries = project.entries || [];
@@ -17,21 +31,32 @@ const Export = {
     // 2. Include enabled fields that have data in at least one entry
     const columnsToExport = Export.determineColumns(flatTree, enabledFields);
 
-    // Build header row using aspace_code values
-    const headerRow = columnsToExport.map(f => f.aspace_code);
+    // Row 1: ASpace field code row (marker in first cell so the importer finds it)
+    const headerRow = [
+      'ArchivesSpace field code (please don\'t edit this row)',
+      ...columnsToExport.map(f => f.aspace_code)
+    ];
 
-    // Build data rows
-    const dataRows = flatTree.map((entry, index) => {
-      return columnsToExport.map(field => {
+    // Row 2: Human-readable labels (ignored by importer, helpful for humans)
+    const labelRow = [
+      'Field name',
+      ...columnsToExport.map(f => f.label)
+    ];
+
+    // Build data rows -- empty first cell for the marker column
+    const dataRows = flatTree.map((entry) => {
+      const cells = columnsToExport.map(field => {
         let value = '';
 
         // Special handling for auto-calculated / project-level fields
         if (field.id === 'hierarchy') {
           value = String(entry._hierarchy);
         } else if (field.id === 'res_uri' && project.identifier_type === 'res_uri') {
-          value = index === 0 ? project.resource_identifier : '';
+          // Populate on every row so sorting/reordering the CSV won't lose the identifier
+          value = project.resource_identifier || '';
         } else if (field.id === 'ead' && project.identifier_type === 'ead') {
-          value = index === 0 ? project.resource_identifier : '';
+          // Populate on every row for the same reason
+          value = project.resource_identifier || '';
         } else {
           value = (entry.fields && entry.fields[field.id]) || '';
         }
@@ -40,11 +65,12 @@ const Export = {
         value = Validation.sanitizeForExport(value);
         return value;
       });
+      return ['', ...cells]; // empty first cell for the marker column
     });
 
     // Build CSV with UTF-8 BOM for Excel compatibility
     const BOM = '\uFEFF';
-    const rows = [headerRow, ...dataRows];
+    const rows = [headerRow, labelRow, ...dataRows];
     const csvContent = rows.map(row =>
       row.map(cell => Export.escapeCSV(cell)).join(',')
     ).join('\r\n');
@@ -52,12 +78,21 @@ const Export = {
     return BOM + csvContent;
   },
 
-  // Determine which columns should appear in the export
+  // Determine which columns should appear in the export.
+  //
+  // IMPORTANT - Identifier coupling:
+  // Three values must use the same string ("res_uri" or "ead"):
+  //   1. The radio button value in the New Project modal (value="res_uri" / value="ead")
+  //   2. The identifier_type field stored on the project document in Firestore
+  //   3. The field IDs in FIELD_REGISTRY ('res_uri' and 'ead')
+  // If any of these three diverge, the identifier column will silently disappear
+  // from the export or appear empty. Keep them in sync.
   determineColumns(flatTree, enabledFields) {
     // Always-include fields (structural)
     const alwaysInclude = ['hierarchy', 'level'];
 
     // Add the resource identifier field based on project type
+    // (see coupling note above -- identifier_type must match a field ID)
     const project = App.currentProject;
     if (project) {
       if (project.identifier_type === 'res_uri') alwaysInclude.push('res_uri');

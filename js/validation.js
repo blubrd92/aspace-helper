@@ -18,13 +18,24 @@ const Validation = {
 
     const val = String(value).trim();
 
-    // Controlled vocabulary check
+    // Controlled vocabulary check.
+    // Accept both the Value form (e.g. "cubic_feet") and the Translation form
+    // (e.g. "Cubic Feet") since users may paste data from existing spreadsheets.
+    // ASpace's importer matches Translation first, then Value (case-sensitive).
     if (fieldDef.validation && fieldDef.validation.controlled_vocabulary) {
-      if (!fieldDef.validation.controlled_vocabulary.includes(val)) {
+      const vocab = fieldDef.validation.controlled_vocabulary;
+      // Direct match against the Value form
+      let isValid = vocab.includes(val);
+      // Also accept the Translation form: underscores -> spaces, title-cased
+      if (!isValid) {
+        const asValue = val.toLowerCase().replace(/\s+/g, '_');
+        isValid = vocab.includes(asValue);
+      }
+      if (!isValid) {
         return {
           valid: false,
           type: 'error',
-          message: `"${val}" is not a valid option. Choose from: ${fieldDef.validation.controlled_vocabulary.join(', ')}`
+          message: `"${val}" is not a valid option. Choose from: ${vocab.join(', ')}`
         };
       }
     }
@@ -75,6 +86,17 @@ const Validation = {
           valid: false,
           type: 'error',
           message: 'Digital Object Title cannot contain quotation marks (this is a known ASpace limitation).'
+        };
+      }
+    }
+
+    // Container summary: warn if not wrapped in parentheses (institutional convention)
+    if ((fieldDef.id === 'container_summary' || fieldDef.id === 'container_summary_2') && val) {
+      if (!/^\(.*\)$/.test(val)) {
+        return {
+          valid: false,
+          type: 'warning',
+          message: 'Container summary is typically wrapped in parentheses, e.g., \'(7 document boxes)\'. Check your institution\'s guidelines.'
         };
       }
     }
