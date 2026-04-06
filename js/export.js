@@ -4,6 +4,17 @@
 
 const Export = {
 
+  // Escape HTML to prevent XSS in validation report rendering
+  _escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  },
+
   // Generate CSV string from project data.
   //
   // Output format follows ASpace's bulk importer expectations:
@@ -142,7 +153,9 @@ const Export = {
       return;
     }
 
-    const filename = `${project.name || 'aspace-import'}_${Export.dateStamp()}.csv`;
+    // Sanitize project name for use as filename (remove chars invalid on common filesystems)
+    const safeName = (project.name || 'aspace-import').replace(/[<>:"/\\|?*]/g, '_');
+    const filename = `${safeName}_${Export.dateStamp()}.csv`;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     Export.downloadBlob(blob, filename);
 
@@ -229,13 +242,13 @@ const Export = {
 
     for (const [index, group] of Object.entries(byEntry)) {
       html += `<div class="validation-entry">`;
-      html += `<div class="validation-entry-header">Row ${Number(index) + 1}: ${group.title}</div>`;
+      html += `<div class="validation-entry-header">Row ${Number(index) + 1}: ${Export._escapeHTML(group.title)}</div>`;
 
       for (const issue of group.issues) {
         const icon = issue.severity === 'error' ? '&#10006;' : '&#9888;';
-        html += `<div class="validation-issue" data-entry-id="${group.entryId || ''}" data-field="${issue.field || ''}">
+        html += `<div class="validation-issue" data-entry-id="${Export._escapeHTML(group.entryId || '')}" data-field="${Export._escapeHTML(issue.field || '')}">
           <span class="validation-issue-icon ${issue.severity}">${icon}</span>
-          <span>${issue.message}</span>
+          <span>${Export._escapeHTML(issue.message)}</span>
         </div>`;
       }
 

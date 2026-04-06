@@ -5,6 +5,17 @@
 const Tree = {
   selectedEntryId: null,
 
+  // Escape HTML to prevent XSS in tree item rendering
+  _escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  },
+
   // Render the full tree from project entries
   render(entries) {
     const container = document.getElementById('hierarchy-tree');
@@ -50,11 +61,20 @@ const Tree = {
       .filter(e => !e.parent_id || !byId[e.parent_id])
       .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-    // Find children of a given parent, sorted by order
+    // Pre-build children lookup for O(1) access instead of O(n) per node
+    const childrenMap = {};
+    for (const entry of entries) {
+      const pid = entry.parent_id || null;
+      if (!childrenMap[pid]) childrenMap[pid] = [];
+      childrenMap[pid].push(entry);
+    }
+    // Sort each group by order
+    for (const pid of Object.keys(childrenMap)) {
+      childrenMap[pid].sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
+
     function getChildren(parentId) {
-      return entries
-        .filter(e => e.parent_id === parentId)
-        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      return childrenMap[parentId] || [];
     }
 
     // Walk tree depth-first
@@ -107,14 +127,14 @@ const Tree = {
     const levelClass = Tree.getLevelClass(level);
     const indicator = (entry.fields && entry.fields.indicator_1) || '';
     const childIndicator = (entry.fields && entry.fields.indicator_2) || '';
-    const containerText = indicator ? `Box ${indicator}${childIndicator ? ', Folder ' + childIndicator : ''}` : '';
+    const containerText = indicator ? `Box ${Tree._escapeHTML(indicator)}${childIndicator ? ', Folder ' + Tree._escapeHTML(childIndicator) : ''}` : '';
     const warningIcon = hasHierarchyWarning
       ? '<span class="tree-item-warning" title="Hierarchy level skip \u2014 this entry jumps more than one level from the previous entry">\u26A0</span>'
       : '';
 
     item.innerHTML = `
-      ${warningIcon}<span class="tree-item-level ${levelClass}">${level || '?'}</span>
-      <span class="tree-item-title ${title ? '' : 'untitled'}">${title || 'Untitled'}</span>
+      ${warningIcon}<span class="tree-item-level ${levelClass}">${Tree._escapeHTML(level) || '?'}</span>
+      <span class="tree-item-title ${title ? '' : 'untitled'}">${Tree._escapeHTML(title) || 'Untitled'}</span>
       ${containerText ? `<span class="tree-item-container">${containerText}</span>` : ''}
       <span class="tree-item-actions">
         <button class="tree-item-btn" data-action="add-child" title="Add child entry">+C</button>
@@ -339,6 +359,19 @@ const Tree = {
     if (sibIndex <= 0) return; // can't indent the first sibling
 
     const newParent = siblings[sibIndex - 1];
+
+    // Prevent cycles: don't indent if the new parent is a descendant of this entry
+    const isDescendant = (ancestorId, checkId) => {
+      let current = entries.find(e => e.id === checkId);
+      while (current && current.parent_id) {
+        if (current.parent_id === ancestorId) return true;
+        current = entries.find(e => e.id === current.parent_id);
+      }
+      return false;
+    };
+
+    if (isDescendant(entryId, newParent.id)) return; // would create a cycle
+
     entry.parent_id = newParent.id;
 
     // Set order to be last child of new parent
@@ -395,6 +428,14 @@ const Tree = {
     findDescendants(entryId);
 
     project.entries = entries.filter(e => !toDelete.has(e.id));
+
+    // Clean up any orphaned entries (parent_id points to non-existent entry)
+    const remainingIds = new Set(project.entries.map(e => e.id));
+    for (const entry of project.entries) {
+      if (entry.parent_id && !remainingIds.has(entry.parent_id)) {
+        entry.parent_id = null; // promote to root rather than leave orphaned
+      }
+    }
 
     if (Tree.selectedEntryId === entryId) {
       Tree.selectedEntryId = null;

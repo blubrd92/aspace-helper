@@ -246,7 +246,9 @@ const Form = {
     const errorEl = input.closest('.form-field').querySelector(`[data-error-for="${fieldDef.id}"]`);
 
     if (!result.valid) {
-      input.classList.add('field-error');
+      // Use different input highlight for warnings vs errors
+      input.classList.remove('field-error', 'field-warning');
+      input.classList.add(result.type === 'warning' ? 'field-warning' : 'field-error');
       if (errorEl) {
         errorEl.textContent = result.message;
         errorEl.className = result.type === 'warning'
@@ -255,7 +257,7 @@ const Form = {
         errorEl.classList.remove('hidden');
       }
     } else {
-      input.classList.remove('field-error');
+      input.classList.remove('field-error', 'field-warning');
       if (errorEl) {
         errorEl.textContent = '';
         errorEl.classList.add('hidden');

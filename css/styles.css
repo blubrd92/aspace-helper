@@ -8,7 +8,7 @@
   --color-bg: #f7f8fa;
   --color-surface: #ffffff;
   --color-text: #1a202c;
-  --color-text-muted: #718096;
+  --color-text-muted: #596577;
   --color-text-light: #a0aec0;
   --color-border: #e2e8f0;
   --color-border-focus: #2c5282;
@@ -448,6 +448,18 @@ textarea.field-error {
   border-color: var(--color-error);
 }
 
+input.field-warning,
+select.field-warning,
+textarea.field-warning {
+  border-color: var(--color-warning, #d69e2e);
+}
+
+.field-warning-message {
+  color: var(--color-warning, #d69e2e);
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
 textarea {
   resize: vertical;
   min-height: 80px;
@@ -727,8 +739,8 @@ select {
 
 /* Status color variants */
 .status-in_progress {
-  background: var(--color-bg);
-  color: var(--color-text-muted);
+  background: #edf2f7;
+  color: #4a5568;
 }
 
 .status-ready_for_review {
