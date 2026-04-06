@@ -366,3 +366,59 @@ describe('Validation.isDateAfterOrEqual', () => {
     assert.ok(Validation.isDateAfterOrEqual('1975-06', '1976'));
   });
 });
+
+// ===== CONTROLLED VOCABULARY TRANSLATION FORM =====
+
+describe('Validation.validateField - Translation form matching', () => {
+  it('accepts Translation form with spaces instead of underscores', () => {
+    const field = getField('extent_type');
+    // "cubic feet" -> "cubic_feet" which is in the vocabulary
+    assert.ok(Validation.validateField(field, 'cubic feet', {}).valid);
+  });
+
+  it('accepts Translation form with mixed case', () => {
+    const field = getField('extent_type');
+    // "Cubic Feet" -> lowercase -> "cubic feet" -> underscores -> "cubic_feet"
+    assert.ok(Validation.validateField(field, 'Cubic Feet', {}).valid);
+  });
+
+  it('handles multiple spaces between words', () => {
+    const field = getField('extent_type');
+    assert.ok(Validation.validateField(field, 'cubic  feet', {}).valid);
+  });
+
+  it('still rejects truly invalid values', () => {
+    const field = getField('extent_type');
+    const result = Validation.validateField(field, 'banana peels', {});
+    assert.equal(result.valid, false);
+    assert.equal(result.type, 'error');
+  });
+});
+
+// ===== CONTAINER SUMMARY PARENTHESES WARNING =====
+
+describe('Validation.validateField - container summary parentheses', () => {
+  it('warns when value lacks parentheses', () => {
+    const field = getField('container_summary');
+    const result = Validation.validateField(field, '7 document boxes', {});
+    assert.equal(result.valid, false);
+    assert.equal(result.type, 'warning');
+  });
+
+  it('accepts value wrapped in parentheses', () => {
+    const field = getField('container_summary');
+    assert.ok(Validation.validateField(field, '(7 document boxes)', {}).valid);
+  });
+
+  it('no warning for empty container_summary', () => {
+    const field = getField('container_summary');
+    assert.ok(Validation.validateField(field, '', {}).valid);
+  });
+
+  it('works for container_summary_2 as well', () => {
+    const field = getField('container_summary_2');
+    const result = Validation.validateField(field, '3 folders', {});
+    assert.equal(result.valid, false);
+    assert.equal(result.type, 'warning');
+  });
+});

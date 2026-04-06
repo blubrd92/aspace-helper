@@ -943,10 +943,10 @@ const App = {
     // --- Editor: Back to projects ---
     document.getElementById('btn-back-projects').addEventListener('click', async () => {
       if (App.isDirty) {
-        try {
-          await App.autoSave();
-        } catch (e) {
-          console.error('Auto-save failed on navigation:', e);
+        // autoSave() returns undefined but sets sync status on failure,
+        // so check isDirty after await to detect failed saves
+        await App.autoSave();
+        if (App.isDirty) {
           App.showToast('Warning: your latest changes may not have been saved.', 'warning');
         }
       }
@@ -957,10 +957,8 @@ const App = {
 
     document.getElementById('btn-back-to-projects').addEventListener('click', async () => {
       if (App.isDirty) {
-        try {
-          await App.autoSave();
-        } catch (e) {
-          console.error('Auto-save failed on navigation:', e);
+        await App.autoSave();
+        if (App.isDirty) {
           App.showToast('Warning: your latest changes may not have been saved.', 'warning');
         }
       }

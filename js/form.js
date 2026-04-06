@@ -190,9 +190,9 @@ const Form = {
           autoFill('begin', val);
           autoFill('end', val);
         }
-        // Year range: "1957-1965"
-        else if (/^\d{4}-\d{4}$/.test(val)) {
-          const [startYear, endYear] = val.split('-');
+        // Year range: "1957-1965" (also handles spaces around the dash)
+        else if (/^\d{4}\s*-\s*\d{4}$/.test(val)) {
+          const [startYear, endYear] = val.split(/\s*-\s*/);
           autoFill('begin', startYear);
           autoFill('end', endYear);
           autoFill('date_type', 'inclusive');

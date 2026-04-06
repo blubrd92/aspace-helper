@@ -262,7 +262,9 @@ const Tree = {
     // Auto-increment folder number from previous sibling.
     // Only when adding as sibling (not child), and only if the previous
     // sibling's folder number is a plain integer (not "1-3" or "A").
-    if (!asChild && effectiveParent !== undefined) {
+    // effectiveParent is null for root entries and a string ID for nested entries;
+    // both cases should allow auto-increment.
+    if (!asChild) {
       // Find the sibling just before the new entry's position
       const sortedSiblings = entries
         .filter(e => e.parent_id === effectiveParent && e.id !== newEntry.id)
