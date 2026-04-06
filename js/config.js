@@ -2,6 +2,17 @@
 // Configuration management: institution config, defaults, admin settings panel.
 
 const Config = {
+  // Escape HTML to prevent XSS when inserting user-controlled text into innerHTML
+  _escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  },
+
   // Cached institution config (loaded once on login)
   institutionConfig: null,
   institutionDefaults: null,
@@ -405,7 +416,7 @@ const Config = {
 
       row.innerHTML = `
         <span class="default-row-label">${field.label}</span>
-        <span class="default-row-inst">${instValue}</span>
+        <span class="default-row-inst">${Config._escapeHTML(instValue)}</span>
         <div class="default-row-value">
           ${Config.renderDefaultInput(field, userValue, 'user-default')}
         </div>
@@ -441,7 +452,7 @@ const Config = {
                 ${options}
               </select>`;
     }
-    return `<input type="text" data-default-field="${field.id}" data-prefix="${prefix}" value="${value || ''}">`;
+    return `<input type="text" data-default-field="${field.id}" data-prefix="${prefix}" value="${Config._escapeHTML(value || '')}">`;
   },
 
   // Collect defaults from a container's inputs
@@ -592,8 +603,8 @@ const Config = {
 
       row.innerHTML = `
         <div class="team-member-info">
-          <strong>${user.display_name || user.email}${isCurrentUser ? ' (you)' : ''}</strong>
-          <span>${user.email}</span>
+          <strong>${Config._escapeHTML(user.display_name || user.email)}${isCurrentUser ? ' (you)' : ''}</strong>
+          <span>${Config._escapeHTML(user.email)}</span>
         </div>
         <div class="team-member-role">${roleOptions}</div>
         ${removeBtn}

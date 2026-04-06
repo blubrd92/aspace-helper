@@ -312,7 +312,7 @@ const App = {
 
       chip.innerHTML = `
         <span class="default-chip-label">${field.label}:</span>
-        <span class="default-chip-value" data-default-edit="${field.id}">${resolved.value}</span>
+        <span class="default-chip-value" data-default-edit="${field.id}">${App._escapeHTML(resolved.value)}</span>
         ${sourceLabel ? `<span class="default-chip-source">${sourceLabel}</span>` : ''}
       `;
 
