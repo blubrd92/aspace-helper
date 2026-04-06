@@ -20,6 +20,17 @@ const App = {
     'exported': 'Exported'
   },
 
+  // Escape HTML to prevent XSS when inserting user-controlled text into innerHTML
+  _escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  },
+
   // ===== INITIALIZATION =====
 
   init() {
@@ -188,14 +199,14 @@ const App = {
         ? new Date(project.updated_at.seconds * 1000).toLocaleDateString()
         : 'Never';
       const creatorName = App._memberNameCache[project.created_by] || '';
-      const creatorSuffix = creatorName ? ` &middot; ${creatorName}` : '';
+      const creatorSuffix = creatorName ? ` &middot; ${App._escapeHTML(creatorName)}` : '';
 
       const status = project.status || 'in_progress';
       const statusLabel = App.STATUS_LABELS[status] || status;
 
       card.innerHTML = `
         <div class="project-card-info">
-          <h4>${project.name}</h4>
+          <h4>${App._escapeHTML(project.name)}</h4>
           <span class="project-card-meta">${entryCount} entries &middot; Updated ${updatedAt}${creatorSuffix}</span>
         </div>
         <div class="project-card-actions">
@@ -868,10 +879,20 @@ const App = {
       }
 
       // Reassign the leaving user's projects to another member
-      await DB.reassignProjects(institutionId, uid);
+      const reassigned = await DB.reassignProjects(institutionId, uid);
+      if (!reassigned) {
+        App.showToast('Failed to reassign your projects. Please try again or contact an admin.', 'error');
+        leaveModal.classList.add('hidden');
+        return;
+      }
 
       // Remove user document (removes institution membership)
-      await DB.deleteUser(uid);
+      const deleted = await DB.deleteUser(uid);
+      if (!deleted) {
+        App.showToast('Failed to complete leaving. Please try again.', 'error');
+        leaveModal.classList.add('hidden');
+        return;
+      }
 
       // Sign out and return to login
       leaveModal.classList.add('hidden');
@@ -897,16 +918,25 @@ const App = {
 
     deleteProjectBtn.addEventListener('click', async () => {
       if (!App._deleteProjectId || deleteProjectBtn.disabled) return;
-      await DB.deleteProject(App._deleteProjectId);
+      const success = await DB.deleteProject(App._deleteProjectId);
       deleteProjectModal.classList.add('hidden');
       App._deleteProjectId = null;
-      App.renderProjectList();
-      App.showToast('Project deleted.', 'success');
+      if (success) {
+        App.renderProjectList();
+        App.showToast('Project deleted.', 'success');
+      } else {
+        App.showToast('Failed to delete project. Please try again.', 'error');
+      }
     });
 
     // --- User menu dropdowns ---
     App.setupDropdown('btn-user-menu', 'user-dropdown');
     App.setupDropdown('btn-user-menu-editor', 'user-dropdown-editor');
+
+    // Single global listener to close all dropdowns on outside click
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.dropdown').forEach(d => d.classList.add('hidden'));
+    });
 
     // --- Editor: Edit resource identifier ---
     document.getElementById('editor-resource-id').addEventListener('click', () => {
@@ -1152,6 +1182,8 @@ const App = {
       const code = document.getElementById('settings-invite-code').textContent;
       navigator.clipboard.writeText(code).then(() => {
         App.showToast('Invite code copied!', 'success');
+      }).catch(() => {
+        App.showToast('Could not copy to clipboard. Please copy manually.', 'warning');
       });
     });
 
@@ -1192,6 +1224,16 @@ const App = {
       });
     });
 
+    // Close topmost visible modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const visibleModals = document.querySelectorAll('.modal:not(.hidden)');
+        if (visibleModals.length > 0) {
+          visibleModals[visibleModals.length - 1].classList.add('hidden');
+        }
+      }
+    });
+
     // --- Panel resize ---
     App.setupPanelResize();
 
@@ -1212,11 +1254,11 @@ const App = {
 
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
+      // Close any other open dropdowns first
+      document.querySelectorAll('.dropdown').forEach(d => {
+        if (d !== dropdown) d.classList.add('hidden');
+      });
       dropdown.classList.toggle('hidden');
-    });
-
-    document.addEventListener('click', () => {
-      dropdown.classList.add('hidden');
     });
   },
 
