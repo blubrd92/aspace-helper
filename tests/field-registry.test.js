@@ -58,7 +58,7 @@ describe('Field Registry', () => {
 describe('ASpace Controlled Vocabularies', () => {
   // Values verified against archivesspace/archivesspace common/schemas and common/locales/enums/en.yml
   const ASPACE_LEVEL_VALUES = ['class', 'collection', 'file', 'fonds', 'item', 'otherlevel', 'recordgrp', 'series', 'subfonds', 'subgrp', 'subseries'];
-  const ASPACE_DATE_TYPE_VALUES = ['bulk', 'inclusive', 'single'];
+  const ASPACE_DATE_TYPE_VALUES = ['bulk', 'expression', 'inclusive', 'single'];
   const ASPACE_DATE_CERTAINTY_VALUES = ['approximate', 'inferred', 'questionable'];
   const ASPACE_EXTENT_PORTION_VALUES = ['part', 'whole'];
   const ASPACE_CONTAINER_TYPE_VALUES = ['box', 'carton', 'case', 'container', 'folder', 'frame', 'object', 'page', 'reel', 'volume'];
@@ -105,6 +105,18 @@ describe('ASpace Controlled Vocabularies', () => {
     const dl = FIELD_REGISTRY.find(f => f.id === 'dates_label');
     assert.ok(dl.validation.controlled_vocabulary.includes('usage'),
       'dates_label should include "usage"');
+  });
+
+  it('date_label includes "acquisition" from ASpace enumerations', () => {
+    const dl = FIELD_REGISTRY.find(f => f.id === 'dates_label');
+    assert.ok(dl.validation.controlled_vocabulary.includes('acquisition'),
+      'dates_label should include "acquisition"');
+  });
+
+  it('date_type includes "expression" from ASpace enumerations', () => {
+    const dt = FIELD_REGISTRY.find(f => f.id === 'date_type');
+    assert.ok(dt.validation.controlled_vocabulary.includes('expression'),
+      'date_type should include "expression"');
   });
 
   it('subject_source does not include non-ASpace values', () => {

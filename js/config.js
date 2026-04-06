@@ -122,17 +122,31 @@ const Config = {
           <span class="field-config-code">${field.aspace_code}</span>
         `;
 
-        const toggle = document.createElement('label');
-        toggle.className = 'toggle';
-        toggle.innerHTML = `
-          <input type="checkbox" data-field-id="${field.id}"
-                 ${enabledFields.includes(field.id) ? 'checked' : ''}
-                 ${field.required ? 'checked disabled' : ''}>
-          <span class="toggle-slider"></span>
-        `;
-
         row.appendChild(label);
-        row.appendChild(toggle);
+
+        if (field.required) {
+          // No toggle for required fields — show a text label instead
+          const badge = document.createElement('span');
+          badge.className = 'field-required-badge';
+          badge.textContent = 'Required';
+          // Hidden checkbox so saveSettings() still picks it up
+          const hidden = document.createElement('input');
+          hidden.type = 'checkbox';
+          hidden.checked = true;
+          hidden.setAttribute('data-field-id', field.id);
+          hidden.style.display = 'none';
+          row.appendChild(badge);
+          row.appendChild(hidden);
+        } else {
+          const toggle = document.createElement('label');
+          toggle.className = 'toggle';
+          toggle.innerHTML = `
+            <input type="checkbox" data-field-id="${field.id}"
+                   ${enabledFields.includes(field.id) ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          `;
+          row.appendChild(toggle);
+        }
         section.appendChild(row);
       }
 
@@ -164,6 +178,156 @@ const Config = {
 
       container.appendChild(row);
     }
+  },
+
+  // Populate the My Profile modal
+  renderProfile() {
+    const nameInput = document.getElementById('profile-display-name');
+    const emailDisplay = document.getElementById('profile-email-display');
+    const errorEl = document.getElementById('profile-error');
+
+    if (!nameInput || !emailDisplay) return;
+
+    // Display name
+    nameInput.value = (Auth.userData && Auth.userData.display_name) || '';
+
+    // Email display
+    emailDisplay.textContent = Auth.currentUser ? Auth.currentUser.email : '';
+
+    // Reset all expandable sections
+    document.getElementById('profile-email-fields').classList.add('hidden');
+    document.getElementById('profile-password-fields').classList.add('hidden');
+    document.getElementById('profile-email').value = '';
+    document.getElementById('profile-email-confirm').value = '';
+    document.getElementById('profile-email-password').value = '';
+    document.getElementById('profile-current-password').value = '';
+    document.getElementById('profile-new-password').value = '';
+    document.getElementById('profile-confirm-password').value = '';
+    errorEl.classList.add('hidden');
+
+    // Google users: show hints, hide change buttons
+    const isGoogle = Auth.isGoogleUser();
+    document.getElementById('btn-change-email').classList.toggle('hidden', isGoogle);
+    document.getElementById('profile-google-hint').classList.toggle('hidden', !isGoogle);
+    document.getElementById('btn-change-password').classList.toggle('hidden', isGoogle);
+    document.getElementById('profile-password-google-hint').classList.toggle('hidden', !isGoogle);
+  },
+
+  // Wire up Change Email / Change Password toggle buttons (call once in bindEvents)
+  bindProfileToggles() {
+    document.getElementById('btn-change-email').addEventListener('click', () => {
+      const fields = document.getElementById('profile-email-fields');
+      fields.classList.toggle('hidden');
+      if (!fields.classList.contains('hidden')) {
+        document.getElementById('profile-email').focus();
+      }
+    });
+    document.getElementById('btn-change-password').addEventListener('click', () => {
+      const fields = document.getElementById('profile-password-fields');
+      fields.classList.toggle('hidden');
+      if (!fields.classList.contains('hidden')) {
+        document.getElementById('profile-current-password').focus();
+      }
+    });
+  },
+
+  // Save profile changes (display name, email, password).
+  // Returns { ok, nameChanged, emailChanged, passwordChanged } or { ok: false } on failure.
+  async saveProfile() {
+    const errorEl = document.getElementById('profile-error');
+    errorEl.classList.add('hidden');
+
+    // --- Display name ---
+    const newName = document.getElementById('profile-display-name').value.trim();
+    const currentName = (Auth.userData && Auth.userData.display_name) || '';
+    const nameChanged = newName !== currentName;
+    if (nameChanged) {
+      const result = await Auth.updateDisplayName(newName);
+      if (!result.success) {
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+    }
+
+    // --- Email change (only if section is open) ---
+    const emailFieldsOpen = !document.getElementById('profile-email-fields').classList.contains('hidden');
+    let emailChanged = false;
+    if (emailFieldsOpen) {
+      const newEmail = document.getElementById('profile-email').value.trim();
+      const confirmEmail = document.getElementById('profile-email-confirm').value.trim();
+      const emailPassword = document.getElementById('profile-email-password').value;
+
+      if (!newEmail) {
+        errorEl.textContent = 'Please enter your new email address.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(newEmail)) {
+        errorEl.textContent = 'Please enter a valid email address.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      if (newEmail !== confirmEmail) {
+        errorEl.textContent = 'Email addresses don\'t match.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      if (!emailPassword) {
+        errorEl.textContent = 'Please enter your current password to change your email.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      const result = await Auth.updateEmail(newEmail, emailPassword);
+      if (!result.success) {
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+      emailChanged = true;
+    }
+
+    // --- Password change (only if section is open) ---
+    const passwordFieldsOpen = !document.getElementById('profile-password-fields').classList.contains('hidden');
+    let passwordChanged = false;
+    if (passwordFieldsOpen) {
+      const currentPw = document.getElementById('profile-current-password').value;
+      const newPw = document.getElementById('profile-new-password').value;
+      const confirmPw = document.getElementById('profile-confirm-password').value;
+
+      if (!currentPw || !newPw || !confirmPw) {
+        errorEl.textContent = 'Please fill in all password fields.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      if (newPw.length < 6) {
+        errorEl.textContent = 'New password must be at least 6 characters.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      if (newPw !== confirmPw) {
+        errorEl.textContent = 'New passwords don\'t match.';
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+
+      const result = await Auth.updatePassword(currentPw, newPw);
+      if (!result.success) {
+        errorEl.textContent = result.error;
+        errorEl.classList.remove('hidden');
+        return { ok: false };
+      }
+      passwordChanged = true;
+    }
+
+    return { ok: true, nameChanged, emailChanged, passwordChanged };
   },
 
   // Render My Defaults modal content
@@ -246,6 +410,13 @@ const Config = {
       }
     });
 
+    // Ensure required fields are always included (safeguard against bypass)
+    for (const field of FIELD_REGISTRY) {
+      if (field.required && !enabledFields.includes(field.id)) {
+        enabledFields.push(field.id);
+      }
+    }
+
     const instDefaults = Config.collectDefaults(
       document.getElementById('inst-defaults-list'), 'inst-default'
     );
@@ -262,6 +433,11 @@ const Config = {
     });
 
     if (success) {
+      // If institution name changed, update the invite code doc so join preview shows new name
+      const resolvedName = instName || Config.institutionData.name;
+      if (resolvedName !== Config.institutionData.name && Config.institutionData.invite_code) {
+        await DB.updateInviteCodeName(Config.institutionData.invite_code, resolvedName);
+      }
       // Refresh cached config
       await Config.loadInstitution(institutionId);
       App.showToast('Settings saved.', 'success');
@@ -390,7 +566,7 @@ const Config = {
       });
     });
 
-    // Show invite code
+    // Set invite code (visible — only admins see the Team tab)
     const codeEl = document.getElementById('settings-invite-code');
     if (codeEl && Config.institutionData) {
       codeEl.textContent = Config.institutionData.invite_code;

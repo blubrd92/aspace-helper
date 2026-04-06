@@ -13,8 +13,8 @@
       <h1 class="app-title">ASpace Helper</h1>
       <p class="app-subtitle">Prepare data for ArchivesSpace bulk import — the easy way.</p>
 
-      <!-- Sign In Form (default state) -->
-      <div id="auth-signin" class="auth-form">
+      <!-- Sign In Form (hidden until auth state resolves) -->
+      <div id="auth-signin" class="auth-form hidden">
         <div class="auth-form-fields">
           <label for="signin-email">Email</label>
           <input type="email" id="signin-email" placeholder="you@library.org" autocomplete="email">
@@ -49,6 +49,8 @@
       <!-- Create Account Form -->
       <div id="auth-create" class="auth-form hidden">
         <div class="auth-form-fields">
+          <label for="create-display-name">Display Name</label>
+          <input type="text" id="create-display-name" placeholder="Your name" autocomplete="name" maxlength="100">
           <label for="create-email">Email</label>
           <input type="email" id="create-email" placeholder="you@library.org" autocomplete="email">
           <label for="create-password">Password</label>
@@ -100,10 +102,14 @@
         </div>
       </div>
 
-      <!-- Loading state (shown during auth processing) -->
-      <div id="auth-loading" class="auth-form hidden">
+      <!-- Loading state (shown by default until auth resolves) -->
+      <div id="auth-loading" class="auth-form">
         <div class="auth-spinner"></div>
         <p class="auth-loading-text">Loading your workspace...</p>
+      </div>
+
+      <div class="login-footer">
+        <a href="legal.html" target="_blank" rel="noopener">Privacy Policy & Terms</a>
       </div>
     </div>
   </div>
@@ -113,6 +119,7 @@
     <div class="onboarding-container">
       <h2>Welcome to ASpace Helper</h2>
       <p>Let's get you set up. Are you starting a new institution or joining an existing team?</p>
+      <button id="btn-onboarding-signout" class="btn btn-text onboarding-signout">Sign out</button>
       <div class="onboarding-options">
         <button id="btn-create-institution" class="btn btn-primary">Create New Institution</button>
         <button id="btn-join-institution" class="btn btn-secondary">Join Existing Institution</button>
@@ -157,10 +164,10 @@
             <span id="user-name-display"></span>
           </button>
           <div id="user-dropdown" class="dropdown hidden">
+            <button id="btn-my-profile" class="dropdown-item">My Profile</button>
             <button id="btn-my-defaults" class="dropdown-item">My Defaults</button>
-            <button id="btn-settings" class="dropdown-item admin-only">Settings</button>
+            <button id="btn-settings" class="dropdown-item admin-only">Admin Settings</button>
             <hr>
-            <button id="btn-leave-institution" class="dropdown-item dropdown-item-danger">Leave Institution</button>
             <button id="btn-signout" class="dropdown-item">Sign Out</button>
           </div>
         </div>
@@ -168,11 +175,6 @@
     </header>
 
     <main class="project-list-main">
-      <div id="invite-code-banner" class="banner hidden">
-        <p>Share this code with your team so they can join: <strong id="invite-code-display"></strong></p>
-        <button id="btn-copy-invite" class="btn btn-small">Copy</button>
-      </div>
-
       <div class="project-list-header">
         <h2>Projects</h2>
         <button id="btn-new-project" class="btn btn-primary">New Project</button>
@@ -234,11 +236,11 @@
             <span id="user-avatar-editor" class="avatar"></span>
           </button>
           <div id="user-dropdown-editor" class="dropdown hidden">
+            <button id="btn-my-profile-editor" class="dropdown-item">My Profile</button>
             <button id="btn-my-defaults-editor" class="dropdown-item">My Defaults</button>
-            <button id="btn-settings-editor" class="dropdown-item admin-only">Settings</button>
+            <button id="btn-settings-editor" class="dropdown-item admin-only">Admin Settings</button>
             <hr>
             <button id="btn-back-to-projects" class="dropdown-item">Switch Project</button>
-            <button id="btn-leave-institution-editor" class="dropdown-item dropdown-item-danger">Leave Institution</button>
             <button id="btn-signout-editor" class="dropdown-item">Sign Out</button>
           </div>
         </div>
@@ -322,6 +324,86 @@
     </div>
   </div>
 
+  <!-- My Profile Modal -->
+  <div id="modal-my-profile" class="modal hidden" role="dialog" aria-labelledby="modal-my-profile-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-my-profile-title">My Profile</h3>
+        <button class="btn-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="profile-section">
+        <!-- Display Name (always editable) -->
+        <div class="profile-field">
+          <label for="profile-display-name">Display Name</label>
+          <input type="text" id="profile-display-name" placeholder="Your name" maxlength="100" autocomplete="name">
+        </div>
+
+        <!-- Email: shown as read-only text with a Change button -->
+        <div class="profile-field">
+          <label>Email Address</label>
+          <div class="profile-readonly-row">
+            <span id="profile-email-display" class="profile-readonly-value"></span>
+            <button id="btn-change-email" class="btn btn-text btn-small">Change</button>
+          </div>
+          <p id="profile-google-hint" class="profile-field-hint hidden">Your email is managed by your Google account.</p>
+        </div>
+
+        <!-- Change Email fields (hidden until Change is clicked) -->
+        <div id="profile-email-fields" class="profile-expandable hidden">
+          <div class="profile-field">
+            <label for="profile-email">New Email</label>
+            <input type="email" id="profile-email" placeholder="you@library.org" autocomplete="email">
+          </div>
+          <div class="profile-field">
+            <label for="profile-email-confirm">Confirm New Email</label>
+            <input type="email" id="profile-email-confirm" placeholder="Re-enter new email" autocomplete="off">
+          </div>
+          <div class="profile-field">
+            <label for="profile-email-password">Current Password</label>
+            <input type="password" id="profile-email-password" placeholder="Required to change email" autocomplete="current-password">
+          </div>
+        </div>
+
+        <!-- Password: Change button reveals fields -->
+        <div class="profile-field" id="profile-password-section">
+          <label>Password</label>
+          <div class="profile-readonly-row">
+            <span class="profile-readonly-value">••••••••</span>
+            <button id="btn-change-password" class="btn btn-text btn-small">Change</button>
+          </div>
+          <p id="profile-password-google-hint" class="profile-field-hint hidden">Your password is managed by your Google account.</p>
+        </div>
+
+        <!-- Change Password fields (hidden until Change is clicked) -->
+        <div id="profile-password-fields" class="profile-expandable hidden">
+          <div class="profile-field">
+            <label for="profile-current-password">Current Password</label>
+            <input type="password" id="profile-current-password" placeholder="Enter current password" autocomplete="current-password">
+          </div>
+          <div class="profile-field">
+            <label for="profile-new-password">New Password</label>
+            <input type="password" id="profile-new-password" placeholder="At least 6 characters" autocomplete="new-password">
+          </div>
+          <div class="profile-field">
+            <label for="profile-confirm-password">Confirm New Password</label>
+            <input type="password" id="profile-confirm-password" placeholder="Re-enter new password" autocomplete="new-password">
+          </div>
+        </div>
+
+        <p id="profile-error" class="auth-error hidden"></p>
+      </div>
+      <hr class="profile-divider">
+      <div class="profile-leave-section">
+        <p class="profile-leave-description">Leave this institution and lose access to all its projects and data.</p>
+        <button id="btn-leave-from-profile" class="btn btn-danger-outline btn-small">Leave Institution</button>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-cancel-my-profile" class="btn btn-secondary">Cancel</button>
+        <button id="btn-save-my-profile" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
   <!-- My Defaults Modal -->
   <div id="modal-my-defaults" class="modal hidden" role="dialog" aria-labelledby="modal-my-defaults-title">
     <div class="modal-content modal-large">
@@ -344,7 +426,7 @@
   <div id="modal-settings" class="modal hidden" role="dialog" aria-labelledby="modal-settings-title">
     <div class="modal-content modal-xlarge">
       <div class="modal-header">
-        <h3 id="modal-settings-title">Settings</h3>
+        <h3 id="modal-settings-title">Admin Settings</h3>
         <button class="btn-close" aria-label="Close">&times;</button>
       </div>
       <div class="settings-tabs">
@@ -374,7 +456,7 @@
             <h4>Invite Code</h4>
             <p>Share this code with new team members:</p>
             <div class="invite-code-row">
-              <strong id="settings-invite-code"></strong>
+              <span id="settings-invite-code" class="invite-code-value"></span>
               <button id="btn-copy-invite-settings" class="btn btn-small">Copy</button>
               <button id="btn-regenerate-code" class="btn btn-small btn-danger">Regenerate</button>
             </div>

@@ -24,25 +24,42 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function getInstitutionDoc(instId) {
+      return get(/databases/$(database)/documents/institutions/$(instId)).data;
+    }
+
+    function institutionExists(instId) {
+      return exists(/databases/$(database)/documents/institutions/$(instId));
+    }
+
     // ============================================================
     // USERS COLLECTION
     // ============================================================
     // Document ID = Firebase Auth UID.
-    // Users can read/write their own document.
-    // Admins can read all user docs in their institution (team management).
+    // Members can read other users in their institution (for "created by" display).
     // Admins can update other users' roles within their institution.
-    // Admins can delete users from their institution.
+    // Admins can delete users from their institution (with last-admin protection).
     match /users/{userId} {
       allow read: if isSignedIn() && (
         request.auth.uid == userId ||
         (userExists()
-          && getUserDoc().role == "admin"
           && getUserDoc().institution_id == resource.data.institution_id)
       );
 
-      // Users can create their own doc during onboarding
+      // Users can create their own doc during onboarding.
+      // Founder (institution creator) may set role to "admin".
+      // Everyone else must join as "member".
       allow create: if isSignedIn()
-        && request.auth.uid == userId;
+        && request.auth.uid == userId
+        && institutionExists(request.resource.data.institution_id)
+        && (
+          // Founder: institution's created_by matches this user → admin allowed
+          (request.resource.data.role == "admin"
+            && getInstitutionDoc(request.resource.data.institution_id).created_by == request.auth.uid)
+          ||
+          // Joiner: must be member
+          request.resource.data.role == "member"
+        );
 
       // Self-update: can change anything EXCEPT role and institution_id
       // Admin update: can change fields for users in their institution
@@ -59,11 +76,19 @@ service cloud.firestore {
 
       // Users can delete their own doc (leave institution)
       // Admins can delete users from their institution
+      // Cannot delete if you are the only admin (last-admin protection)
       allow delete: if isSignedIn() && (
-        request.auth.uid == userId ||
-        (userExists()
+        // Admin removing another user from their institution
+        (request.auth.uid != userId
+          && userExists()
           && getUserDoc().role == "admin"
           && getUserDoc().institution_id == resource.data.institution_id)
+        ||
+        // Self-delete: allowed only if you're not an admin, or you are but there's no
+        // last-admin risk (rules can't count admins, so block admin self-delete entirely;
+        // the app handles reassignment before allowing an admin to leave)
+        (request.auth.uid == userId
+          && resource.data.role != "admin")
       );
     }
 
@@ -72,7 +97,9 @@ service cloud.firestore {
     // ============================================================
     match /institutions/{instId} {
       allow read: if isSignedIn() && belongsToInstitution(instId);
-      allow create: if isSignedIn();
+      // Creator must set created_by to themselves
+      allow create: if isSignedIn()
+        && request.resource.data.created_by == request.auth.uid;
       allow update: if isSignedIn() && isAdminOf(instId);
       allow delete: if isSignedIn() && isAdminOf(instId);
     }
@@ -83,7 +110,17 @@ service cloud.firestore {
     // Document ID = the invite code (guarantees uniqueness).
     match /invite_codes/{code} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      // Allow create during institution setup (founder, no user doc yet)
+      // or during regeneration (existing admin)
+      allow create: if isSignedIn()
+        && institutionExists(request.resource.data.institution_id)
+        && (
+          // Founder: institution's created_by matches this user
+          getInstitutionDoc(request.resource.data.institution_id).created_by == request.auth.uid
+          ||
+          // Existing admin regenerating
+          isAdminOf(request.resource.data.institution_id)
+        );
       allow delete: if isSignedIn()
         && userExists()
         && getUserDoc().role == "admin"

@@ -36,6 +36,7 @@ describe('Validation.validateField', () => {
       assert.ok(Validation.validateField(field, 'single', {}).valid);
       assert.ok(Validation.validateField(field, 'inclusive', {}).valid);
       assert.ok(Validation.validateField(field, 'bulk', {}).valid);
+      assert.ok(Validation.validateField(field, 'expression', {}).valid);
     });
 
     it('rejects invalid date_type values', () => {

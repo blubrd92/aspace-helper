@@ -106,6 +106,7 @@ const DB = {
     try {
       const docRef = await db.collection('institutions').add({
         name: data.name,
+        created_by: firebase.auth().currentUser.uid,
         created_at: firebase.firestore.FieldValue.serverTimestamp(),
         invite_code: data.invite_code,
         config: {
@@ -157,11 +158,19 @@ const DB = {
     return `${prefix}-${suffix}`;
   },
 
-  async createInviteCode(code, institutionId) {
+  async createInviteCode(code, institutionId, institutionName) {
     try {
-      await db.collection('invite_codes').doc(code.toUpperCase()).set({
-        institution_id: institutionId
-      });
+      const docRef = db.collection('invite_codes').doc(code.toUpperCase());
+      const existing = await docRef.get();
+      if (existing.exists) {
+        // Collision — caller should retry with a different code
+        return false;
+      }
+      const data = { institution_id: institutionId };
+      if (institutionName) {
+        data.institution_name = institutionName;
+      }
+      await docRef.set(data);
       return true;
     } catch (error) {
       DB._showError('Failed to create invite code.', error);
@@ -190,25 +199,55 @@ const DB = {
     }
   },
 
+  // Update the institution_name on an existing invite code doc
+  async updateInviteCodeName(code, newName) {
+    try {
+      await db.collection('invite_codes').doc(code.toUpperCase()).update({
+        institution_name: newName
+      });
+      return true;
+    } catch (error) {
+      // Non-critical — log but don't block settings save
+      console.error('Failed to update invite code name:', error);
+      return false;
+    }
+  },
+
   // Regenerate invite code: delete old, create new, update institution
   async regenerateInviteCode(institutionId, oldCode, institutionName) {
-    const newCode = DB.generateInviteCode(institutionName);
-    const batch = db.batch();
-
-    // Delete old code
-    batch.delete(db.collection('invite_codes').doc(oldCode.toUpperCase()));
-
-    // Create new code
-    batch.set(db.collection('invite_codes').doc(newCode.toUpperCase()), {
-      institution_id: institutionId
-    });
-
-    // Update institution
-    batch.update(db.collection('institutions').doc(institutionId), {
-      invite_code: newCode
-    });
-
     try {
+      // Generate a code that doesn't already exist
+      let newCode = null;
+      for (let i = 0; i < 5; i++) {
+        const candidate = DB.generateInviteCode(institutionName);
+        const existing = await db.collection('invite_codes').doc(candidate.toUpperCase()).get();
+        if (!existing.exists) {
+          newCode = candidate;
+          break;
+        }
+      }
+      if (!newCode) {
+        DB._showError('Failed to generate a unique invite code. Please try again.');
+        return null;
+      }
+
+      // Delete old code if it still exists (skip if already removed)
+      if (oldCode) {
+        const oldDoc = await db.collection('invite_codes').doc(oldCode.toUpperCase()).get();
+        if (oldDoc.exists) {
+          await db.collection('invite_codes').doc(oldCode.toUpperCase()).delete();
+        }
+      }
+
+      // Create new code and update institution in a batch
+      const batch = db.batch();
+      batch.set(db.collection('invite_codes').doc(newCode.toUpperCase()), {
+        institution_id: institutionId,
+        institution_name: institutionName
+      });
+      batch.update(db.collection('institutions').doc(institutionId), {
+        invite_code: newCode
+      });
       await batch.commit();
       return newCode;
     } catch (error) {
@@ -280,6 +319,36 @@ const DB = {
       return true;
     } catch (error) {
       DB._showError('Failed to save project.', error);
+      return false;
+    }
+  },
+
+  async reassignProjects(institutionId, userId) {
+    try {
+      // Single .where() + client-side filter to avoid needing a composite index
+      const snapshot = await db.collection('projects')
+        .where('institution_id', '==', institutionId)
+        .get();
+
+      const userProjects = snapshot.docs.filter(doc => doc.data().created_by === userId);
+      if (userProjects.length === 0) return true;
+
+      // The leave flow blocks the last admin from leaving, so there's
+      // always at least one other member remaining to reassign to.
+      const members = await db.collection('users')
+        .where('institution_id', '==', institutionId)
+        .get();
+      const newOwner = members.docs.find(doc => doc.id !== userId);
+      if (!newOwner) return true; // no one left, projects stay as-is
+
+      const batch = db.batch();
+      for (const doc of userProjects) {
+        batch.update(doc.ref, { created_by: newOwner.id });
+      }
+      await batch.commit();
+      return true;
+    } catch (error) {
+      DB._showError('Failed to reassign projects.', error);
       return false;
     }
   },

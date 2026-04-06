@@ -298,7 +298,7 @@ const FIELD_REGISTRY = [
     category: 'dates',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['agent_relation', 'broadcast', 'copyright', 'creation', 'deaccession', 'digitized', 'event', 'existence', 'issued', 'modified', 'other', 'publication', 'record_keeping', 'usage']
+      controlled_vocabulary: ['acquisition', 'agent_relation', 'broadcast', 'copyright', 'creation', 'deaccession', 'digitized', 'event', 'existence', 'issued', 'modified', 'other', 'publication', 'record_keeping', 'usage']
     },
     enabled_by_default: true,
     supports_default: true
@@ -345,7 +345,7 @@ const FIELD_REGISTRY = [
     category: 'dates',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['bulk', 'inclusive', 'single']
+      controlled_vocabulary: ['bulk', 'expression', 'inclusive', 'single']
     },
     enabled_by_default: true,
     supports_default: true
@@ -390,7 +390,7 @@ const FIELD_REGISTRY = [
     category: 'dates',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['agent_relation', 'broadcast', 'copyright', 'creation', 'deaccession', 'digitized', 'event', 'existence', 'issued', 'modified', 'other', 'publication', 'record_keeping', 'usage']
+      controlled_vocabulary: ['acquisition', 'agent_relation', 'broadcast', 'copyright', 'creation', 'deaccession', 'digitized', 'event', 'existence', 'issued', 'modified', 'other', 'publication', 'record_keeping', 'usage']
     },
     enabled_by_default: false,
     supports_default: false
@@ -437,7 +437,7 @@ const FIELD_REGISTRY = [
     category: 'dates',
     default_value: null,
     validation: {
-      controlled_vocabulary: ['bulk', 'inclusive', 'single']
+      controlled_vocabulary: ['bulk', 'expression', 'inclusive', 'single']
     },
     enabled_by_default: false,
     supports_default: false

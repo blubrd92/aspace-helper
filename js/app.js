@@ -5,6 +5,7 @@ const App = {
   currentProject: null,
   isDirty: false,
   saveTimer: null,
+  _projectUnsubscribe: null,  // onSnapshot listener teardown
   _projectCache: [],         // cached project list for client-side filtering
   _memberNameCache: {},      // uid -> display_name lookup
   _projectFilter: 'all',    // 'all' or 'mine'
@@ -73,11 +74,12 @@ const App = {
     const user = Auth.currentUser;
     if (!user) return;
 
-    // Set user name and avatar in all locations
-    const initial = (user.displayName || user.email || '?')[0].toUpperCase();
+    // Prefer Firestore display_name (user-editable) over Firebase Auth displayName
+    const displayName = (Auth.userData && Auth.userData.display_name) || user.displayName || user.email;
+    const initial = (displayName || '?')[0].toUpperCase();
 
     document.querySelectorAll('#user-name-display').forEach(el => {
-      el.textContent = user.displayName || user.email;
+      el.textContent = displayName;
     });
     document.querySelectorAll('.avatar').forEach(el => {
       el.textContent = initial;
@@ -95,15 +97,6 @@ const App = {
       el.style.display = isAdmin ? '' : 'none';
     });
 
-    // Show invite code banner for admins with new institutions
-    if (isAdmin && Config.institutionData) {
-      const banner = document.getElementById('invite-code-banner');
-      const codeDisplay = document.getElementById('invite-code-display');
-      if (banner && codeDisplay) {
-        codeDisplay.textContent = Config.institutionData.invite_code;
-        banner.classList.remove('hidden');
-      }
-    }
   },
 
   async renderProjectList() {
@@ -225,6 +218,9 @@ const App = {
     App.currentProject = project;
     App.isDirty = false;
 
+    // Watch for concurrent edits from other users
+    App._watchProject(projectId);
+
     // Update UI
     document.getElementById('editor-project-name').textContent = project.name;
     const ridBadge = document.getElementById('editor-resource-id');
@@ -335,6 +331,41 @@ const App = {
       App.updateSyncStatus('saved');
     } else {
       App.updateSyncStatus('error');
+    }
+  },
+
+  // Listen for remote changes to the current project via Firestore onSnapshot.
+  // Shows a warning toast if another user modifies the project while it's open.
+  _watchProject(projectId) {
+    App._unwatchProject();
+    const currentUid = Auth.currentUser ? Auth.currentUser.uid : null;
+    let firstSnapshot = true;
+
+    App._projectUnsubscribe = db.collection('projects').doc(projectId)
+      .onSnapshot((doc) => {
+        // Skip the initial snapshot (it's just the current state)
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          return;
+        }
+        if (!doc.exists || !App.currentProject) return;
+
+        const data = doc.data();
+        if (data.updated_by && data.updated_by !== currentUid) {
+          App.showToast(
+            'Another team member just edited this project. Reload to see their changes.',
+            'warning'
+          );
+        }
+      }, (error) => {
+        console.warn('Project watch listener failed:', error);
+      });
+  },
+
+  _unwatchProject() {
+    if (App._projectUnsubscribe) {
+      App._projectUnsubscribe();
+      App._projectUnsubscribe = null;
     }
   },
 
@@ -467,6 +498,7 @@ const App = {
 
     // --- Auth: Create Account ---
     document.getElementById('btn-create-account').addEventListener('click', async () => {
+      const displayName = document.getElementById('create-display-name').value.trim();
       const email = document.getElementById('create-email').value.trim();
       const password = document.getElementById('create-password').value;
       const confirm = document.getElementById('create-password-confirm').value;
@@ -494,7 +526,7 @@ const App = {
       errorEl.classList.add('hidden');
       App.showAuthForm('loading');
 
-      const result = await Auth.createAccountWithEmail(email, password);
+      const result = await Auth.createAccountWithEmail(email, password, displayName || null);
       if (result.error) {
         App.showAuthForm('create');
         errorEl.textContent = result.error;
@@ -565,6 +597,8 @@ const App = {
     });
 
     // --- Onboarding ---
+    document.getElementById('btn-onboarding-signout').addEventListener('click', () => Auth.signOut());
+
     const btnCreateInst = document.getElementById('btn-create-institution');
     const btnJoinInst = document.getElementById('btn-join-institution');
     const onboardingCreate = document.getElementById('onboarding-create');
@@ -599,15 +633,25 @@ const App = {
         return;
       }
 
-      // Generate invite code
-      let inviteCode = DB.generateInviteCode(name);
-      let codeCreated = await DB.createInviteCode(inviteCode, 'pending');
+      // Create institution first so we have a real ID for the invite code
+      const inviteCode = DB.generateInviteCode(name);
+      const institutionId = await DB.createInstitution({ name, invite_code: inviteCode });
+      if (!institutionId) {
+        App.showToast('Failed to create institution.', 'error');
+        return;
+      }
+
+      // Create invite code with all data in one shot (update rules are denied)
+      let codeCreated = await DB.createInviteCode(inviteCode, institutionId, name);
 
       // Retry on collision (extremely unlikely)
       let attempts = 0;
       while (!codeCreated && attempts < 5) {
-        inviteCode = DB.generateInviteCode(name);
-        codeCreated = await DB.createInviteCode(inviteCode, 'pending');
+        const retryCode = DB.generateInviteCode(name);
+        codeCreated = await DB.createInviteCode(retryCode, institutionId, name);
+        if (codeCreated) {
+          await DB.updateInstitution(institutionId, { invite_code: retryCode });
+        }
         attempts++;
       }
 
@@ -615,18 +659,6 @@ const App = {
         App.showToast('Failed to create invite code. Please try again.', 'error');
         return;
       }
-
-      // Create institution
-      const institutionId = await DB.createInstitution({ name, invite_code: inviteCode });
-      if (!institutionId) {
-        App.showToast('Failed to create institution.', 'error');
-        return;
-      }
-
-      // Update invite code with real institution ID
-      await db.collection('invite_codes').doc(inviteCode.toUpperCase()).update({
-        institution_id: institutionId
-      });
 
       // Create user document
       const user = Auth.currentUser;
@@ -662,18 +694,12 @@ const App = {
         return;
       }
 
-      // Show institution name for confirmation
-      const inst = await DB.getInstitution(codeData.institution_id);
-      if (!inst) {
-        document.getElementById('join-error').textContent = 'Institution not found.';
-        document.getElementById('join-error').classList.remove('hidden');
-        return;
-      }
+      const instName = codeData.institution_name || 'Unknown Institution';
 
       document.getElementById('join-error').classList.add('hidden');
-      document.getElementById('join-institution-name').textContent = inst.name;
+      document.getElementById('join-institution-name').textContent = instName;
       document.getElementById('join-confirm').classList.remove('hidden');
-      document.getElementById('join-confirm').setAttribute('data-institution-id', inst.id);
+      document.getElementById('join-confirm').setAttribute('data-institution-id', codeData.institution_id);
     });
 
     // Join institution: confirm
@@ -753,14 +779,6 @@ const App = {
       }
     });
 
-    // --- Copy invite code ---
-    document.getElementById('btn-copy-invite').addEventListener('click', () => {
-      const code = document.getElementById('invite-code-display').textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        App.showToast('Invite code copied!', 'success');
-      });
-    });
-
     // --- Sign out ---
     const signOutHandler = () => Auth.signOut();
     document.getElementById('btn-signout').addEventListener('click', signOutHandler);
@@ -794,8 +812,7 @@ const App = {
       leaveModal.classList.remove('hidden');
     };
 
-    document.getElementById('btn-leave-institution').addEventListener('click', openLeaveModal);
-    document.getElementById('btn-leave-institution-editor').addEventListener('click', openLeaveModal);
+    // Leave institution is now triggered from My Profile modal (btn-leave-from-profile)
 
     // Enable confirm button only when user types LEAVE
     leaveInput.addEventListener('input', () => {
@@ -823,6 +840,9 @@ const App = {
           return;
         }
       }
+
+      // Reassign the leaving user's projects to another member
+      await DB.reassignProjects(institutionId, uid);
 
       // Remove user document (removes institution membership)
       await DB.deleteUser(uid);
@@ -892,12 +912,14 @@ const App = {
       if (App.isDirty) {
         App.autoSave(); // save before leaving
       }
+      App._unwatchProject();
       App.currentProject = null;
       App.loadAndShowProjects();
     });
 
     document.getElementById('btn-back-to-projects').addEventListener('click', () => {
       if (App.isDirty) App.autoSave();
+      App._unwatchProject();
       App.currentProject = null;
       App.loadAndShowProjects();
     });
@@ -954,6 +976,41 @@ const App = {
       btn.textContent = content.classList.contains('hidden') ? 'Show Defaults' : 'Hide Defaults';
     });
 
+    // --- My Profile modal ---
+    Config.bindProfileToggles();
+
+    const openMyProfile = () => {
+      Config.renderProfile();
+      document.getElementById('modal-my-profile').classList.remove('hidden');
+    };
+    document.getElementById('btn-my-profile').addEventListener('click', openMyProfile);
+    document.getElementById('btn-my-profile-editor').addEventListener('click', openMyProfile);
+
+    document.getElementById('btn-save-my-profile').addEventListener('click', async () => {
+      const profile = await Config.saveProfile();
+      if (profile.ok) {
+        const parts = [];
+        if (profile.nameChanged) parts.push('display name');
+        if (profile.emailChanged) parts.push('email');
+        if (profile.passwordChanged) parts.push('password');
+        if (parts.length > 0) {
+          App.showToast('Your ' + parts.join(' and ') + ' updated.', 'success');
+        }
+        App.updateUserDisplay();
+        App.closeModal('modal-my-profile');
+      }
+    });
+
+    document.getElementById('btn-cancel-my-profile').addEventListener('click', () => {
+      App.closeModal('modal-my-profile');
+    });
+
+    // Leave institution button inside My Profile opens the leave confirmation modal
+    document.getElementById('btn-leave-from-profile').addEventListener('click', () => {
+      App.closeModal('modal-my-profile');
+      openLeaveModal();
+    });
+
     // --- My Defaults modal ---
     const openMyDefaults = () => {
       Config.renderMyDefaults();
@@ -963,9 +1020,11 @@ const App = {
     document.getElementById('btn-my-defaults-editor').addEventListener('click', openMyDefaults);
 
     document.getElementById('btn-save-my-defaults').addEventListener('click', async () => {
-      await Config.saveMyDefaults();
-      App.closeModal('modal-my-defaults');
-      if (App.currentProject) App.renderDefaultsBar();
+      const success = await Config.saveMyDefaults();
+      if (success) {
+        App.closeModal('modal-my-defaults');
+        if (App.currentProject) App.renderDefaultsBar();
+      }
     });
 
     document.getElementById('btn-cancel-my-defaults').addEventListener('click', () => {
@@ -1039,7 +1098,6 @@ const App = {
           if (newCode) {
             Config.institutionData.invite_code = newCode;
             document.getElementById('settings-invite-code').textContent = newCode;
-            document.getElementById('invite-code-display').textContent = newCode;
             App.showToast('Invite code regenerated.', 'success');
           }
         }
